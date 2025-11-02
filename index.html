@@ -1,498 +1,100 @@
-
-<!doctype html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Gestione Peso - Single File</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestione Peso Clienti</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
-  /* Semplice style system - chiaro e leggibile */
-  :root{
-    --bg:#f4f6fb; --card:#fff; --muted:#6b7280; --accent:#2563eb;
-    --success:#16a34a; --danger:#dc2626;
-  }
-  body{font-family:Inter,system-ui,Segoe UI,Arial; margin:0; background:var(--bg); color:#0f172a;}
-  header{background:linear-gradient(90deg,#eef2ff,#ffffff); padding:18px 20px; box-shadow:0 1px 0 rgba(0,0,0,0.04);}
-  .wrap{max-width:1100px;margin:22px auto;padding:18px;}
-  .grid{display:grid;gap:16px;}
-  .cols-2{grid-template-columns:1fr 360px;}
-  .card{background:var(--card);border-radius:12px;padding:14px;box-shadow:0 6px 20px rgba(12,15,20,0.06);}
-  h1{margin:0;font-size:20px;}
-  label{display:block;font-size:13px;color:var(--muted);margin-top:10px;}
-  input,select,textarea{width:100%;padding:8px;border-radius:8px;border:1px solid #e6edf3;margin-top:6px;}
-  button{background:var(--accent);color:white;padding:8px 12px;border-radius:8px;border:0;margin-top:12px;cursor:pointer;}
-  .muted{color:var(--muted);font-size:13px;}
-  .small{font-size:12px;color:var(--muted)}
-  table{width:100%;border-collapse:collapse}
-  th,td{padding:8px;text-align:left;border-bottom:1px solid #f1f5f9;font-size:13px}
-  .danger{color:var(--danger)}
-  .success{color:var(--success)}
-  .flex{display:flex;gap:8px;align-items:center;}
-  .pill{background:#eef2ff;padding:6px 10px;border-radius:999px;color:var(--accent);font-weight:600}
-  footer{padding:18px;text-align:center;color:var(--muted);font-size:13px}
-  /* responsive */
-  @media(max-width:900px){ .cols-2{grid-template-columns:1fr} }
+body { font-family: Arial; margin: 0; padding: 20px; background-color: var(--bg); color: var(--text); }
+:root { --bg:#ffffff; --text:#000000; }
+.dark { --bg:#1e1e1e; --text:#f0f0f0; }
+button, input, select { padding: 8px; margin: 5px; border-radius: 6px; border:1px solid #777; }
+.card { border:1px solid #444; padding:15px; border-radius:8px; margin-bottom:20px; }
+#chartContainer { width:100%; max-width:600px; }
+.chat-box { border:1px solid #555; padding:10px; height:200px; overflow:auto; background:#fff; color:#000; }
+.dark .chat-box { background:#333; color:#fff; }
 </style>
 </head>
-<body>
-<header>
-  <div class="wrap" style="display:flex;justify-content:space-between;align-items:center">
-    <div><h1>Team Dev40 • Gestione Peso (single file)</h1><div class="small muted">Tu: amministratore, loro: cliente (accesso solo al proprio profilo)</div></div>
-    <div id="header-actions"></div>
-  </div>
-</header>
+<body id="body">
+<h2>Dashboard Cliente</h2>
+<button onclick="toggleDark()">Modalità Light/Dark</button>
 
-<main class="wrap">
-  <div id="app-root" class="grid"></div>
-  <footer class="card">
-    <div class="muted">Avviso: questa app usa localStorage. Non usare per dati sensibili in produzione. Per sicurezza server-side segui le istruzioni in basso.</div>
-  </footer>
-</main>
+<div class="card">
+  <h3>Inserisci peso</h3>
+  <input id="pesoInput" type="number" step="0.1" placeholder="Peso">
+  <button onclick="addPeso()">Aggiungi</button>
+</div>
+
+<div class="card" id="chartContainer">
+  <h3>Andamento Peso</h3>
+  <canvas id="pesoChart"></canvas>
+</div>
+
+<div class="card">
+  <h3>Genera Dieta</h3>
+  <label>Obiettivo:</label>
+  <select id="goal">
+    <option value="loss">Perdita peso</option>
+    <option value="gain">Aumento massa</option>
+  </select><br>
+  <label>Intolleranze:</label>
+  <input id="intolleranze" placeholder="es. lattosio, glutine"><br>
+  <input id="accept" type="checkbox"> Accetto disclaimer<br>
+  <button onclick="generateDietPDF()">Scarica Dieta PDF</button>
+</div>
+
+<div class="card">
+  <h3>Assistente Virtuale</h3>
+  <div class="chat-box" id="chat"></div>
+  <input id="msg" placeholder="Scrivi una domanda...">
+  <button onclick="sendMsg()">Invia</button>
+</div>
 
 <script>
-/*
-  App single-file: struttura semplice.
-  Dati persistiti in localStorage con chiave 'gp_data_v1'
-  Struttura dati:
-  { adminHash: <sha256hex>, clients: [ {id, name, sex, dob, heightCm, weightKg, activity, goal, pinHash, notes, weightHistory: [{date,weight}], macroPlan: {...}} ], sessions: { current: {role:'admin'|'client', id:...} } }
-*/
+const key = "gp_data_chart";
+let data = JSON.parse(localStorage.getItem(key) || "[]");
+function save(){ localStorage.setItem(key, JSON.stringify(data)); renderChart(); }
+function addPeso(){ const v = parseFloat(document.getElementById('pesoInput').value); if(!v) return; data.push({date:new Date().toLocaleDateString(), peso:v}); save(); }
+let chart;
+function renderChart(){
+  const ctx = document.getElementById('pesoChart');
+  if(chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: { labels: data.map(x=>x.date), datasets: [{ label:"Peso", data: data.map(x=>x.peso), borderWidth:2 }] }
+  });
+}
+renderChart();
+function toggleDark(){ document.body.classList.toggle("dark"); }
 
-/* ---------- Utility crittografia (Web Crypto) ---------- */
-async function sha256hex(str){
-  const enc = new TextEncoder().encode(str);
-  const buf = await crypto.subtle.digest('SHA-256', enc);
-  const b = Array.from(new Uint8Array(buf)).map(x=>x.toString(16).padStart(2,'0')).join('');
-  return b;
+async function generateDietPDF(){
+  if(!document.getElementById("accept").checked){ alert("Accetta il disclaimer"); return; }
+  const { jsPDF } = window.jspdf; const doc = new jsPDF();
+  const goal = document.getElementById("goal").value;
+  const intol = document.getElementById("intolleranze").value;
+  const text = `Piano Alimentare\nObiettivo: ${goal==="loss"?"Perdita Peso":"Aumento Massa"}\nIntolleranze: ${intol}\n\nColazione: Avena, frutta, proteine\nPranzo: Pollo, riso, verdure\nCena: Pesce, patate, insalata\nSpuntini: Yogurt greco, frutta secca\n*Placeholder USFCD`;
+  doc.text(text, 10, 10);
+  doc.save("piano_dieta.pdf");
 }
 
-/* ---------- Storage layer ---------- */
-const STORAGE_KEY = 'gp_data_v1';
-function loadData(){
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if(!raw) return { adminHash:null, clients:[], session:null };
-  try { return JSON.parse(raw); } catch(e){ return { adminHash:null, clients:[], session:null }; }
-}
-function saveData(d){ localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); }
-
-/* ---------- Helpers per ID/PIN ---------- */
-function makeId(){ return 'C' + Math.random().toString(36).slice(2,9).toUpperCase(); }
-function makePin(){ return Math.floor(1000 + Math.random()*9000).toString(); } // 4-digit PIN
-
-/* ---------- Calcoli nutrizionali principali ---------- */
-/* BMR: Mifflin-St Jeor
-   Male: 10*weight(kg) + 6.25*height(cm) - 5*age + 5
-   Female: 10*weight + 6.25*height -5*age -161
-   Source: Mifflin et al. 1990. */
-function calcBMR({sex, weightKg, heightCm, age}){
-  if(sex === 'male') return Math.round(10*weightKg + 6.25*heightCm - 5*age + 5);
-  return Math.round(10*weightKg + 6.25*heightCm - 5*age - 161);
-}
-
-/* TDEE: BMR * activity factor */
-const ACTIVITY_FACTORS = {
-  'sedentary': 1.2, // poco o nessun esercizio
-  'light': 1.375,   // esercizio leggero 1-3 giorni
-  'moderate': 1.55, // esercizio moderato 3-5 giorni
-  'active': 1.725,  // esercizio intenso 6-7 giorni
-  'very': 1.9       // lavoro fisico o atleta molto attivo
+const faq = {
+  "quante calorie": "Dipende dal tuo metabolismo e dal piano fornito.",
+  "come dimagrire": "Calorie controllate, proteine adeguate, movimento costante.",
+  "come aumentare massa": "Surplus calorico, allenamento forza, proteine adeguate."
 };
-function calcTDEE(bmr, activity){ return Math.round(bmr * (ACTIVITY_FACTORS[activity] || 1.2)); }
-
-/* Target calorico: in base all'obiettivo
-   - perdita: TDEE - 500 (regola pratica) 
-   - mantenimento: TDEE
-   - aumento massa: TDEE + 250-500 (usiamo +300 di default)
-   Fonte linee guida: deficit ~500 kcal per perdita; surplus modulabile. */
-function targetCalories(tdee, goal){
-  if(goal === 'loss') return Math.max(1100, tdee - 500);
-  if(goal === 'gain') return tdee + 300;
-  return tdee;
+function sendMsg(){
+  const box = document.getElementById('chat');
+  const msg = document.getElementById('msg').value.toLowerCase();
+  if(!msg) return;
+  box.innerHTML += "<div><b>Tu:</b> "+msg+"</div>";
+  let reply = "Non ho capito, prova a riformulare.";
+  for(const q in faq) if(msg.includes(q)) reply = faq[q];
+  box.innerHTML += "<div><b>AI:</b> "+reply+"</div>";
+  box.scrollTop = box.scrollHeight;
+  document.getElementById('msg').value="";
 }
-
-/* Macro breakdown:
-   - Proteine: g/kg baseline (1.6 g/kg raccomandazione comune, variabile)
-   - Grassi: percentuale delle calorie (default 25%)
-   - Carboidrati: kcal rimanenti / 4
-   Fonti: ISSN protein recommendation + linee guida macronutrienti. */
-function calcMacros({weightKg, calories, proteinPerKg=1.6, fatPercent=0.25}){
-  const proteinG = Math.round(proteinPerKg * weightKg);
-  const proteinKcal = proteinG * 4;
-  const fatKcal = Math.round(calories * fatPercent);
-  const fatG = Math.round(fatKcal / 9);
-  const carbsKcal = Math.max(0, calories - proteinKcal - fatKcal);
-  const carbsG = Math.round(carbsKcal / 4);
-  return { calories, proteinG, fatG, carbsG, proteinKcal, fatKcal, carbsKcal, proteinPerKg, fatPercent };
-}
-
-/* ---------- UI rendering ---------- */
-const root = document.getElementById('app-root');
-let DATA = loadData();
-
-function headerActions(){
-  const hdr = document.getElementById('header-actions');
-  hdr.innerHTML = '';
-  if(DATA.session && DATA.session.role === 'admin'){
-    const btn = document.createElement('button'); btn.textContent='Esci Admin'; btn.onclick=()=>{ DATA.session=null; saveData(DATA); renderApp(); };
-    hdr.appendChild(btn);
-  } else if(DATA.session && DATA.session.role === 'client'){
-    const btn = document.createElement('button'); btn.textContent='Esci Cliente'; btn.onclick=()=>{ DATA.session=null; saveData(DATA); renderApp(); };
-    hdr.appendChild(btn);
-  } else {
-    const btnA = document.createElement('button'); btnA.textContent='Login Admin'; btnA.onclick=()=> renderAdminLogin();
-    const btnC = document.createElement('button'); btnC.textContent='Login Cliente'; btnC.style.marginLeft='8px'; btnC.onclick=()=> renderClientLogin();
-    hdr.appendChild(btnA); hdr.appendChild(btnC);
-  }
-}
-
-function renderApp(){
-  headerActions();
-  root.innerHTML = '';
-  if(!DATA.adminHash){
-    renderSetupAdmin();
-    return;
-  }
-  if(DATA.session && DATA.session.role === 'admin'){
-    renderAdminPanel();
-    return;
-  }
-  if(DATA.session && DATA.session.role === 'client'){
-    renderClientView(DATA.session.id);
-    return;
-  }
-  renderWelcome();
-}
-
-/* Setup Admin if not exists */
-function renderSetupAdmin(){
-  const card = document.createElement('div'); card.className='card';
-  card.innerHTML = `
-    <h2>Configurazione iniziale Admin</h2>
-    <div class="muted">Crea la password admin (sarà salvata in formato hash nel localStorage).</div>
-    <label>Password admin</label><input id="adm-pass" type="password" placeholder="Scegli una password forte" />
-    <div style="display:flex;gap:8px"><button id="adm-create">Crea Admin</button></div>
-  `;
-  root.appendChild(card);
-  document.getElementById('adm-create').onclick = async () => {
-    const p = document.getElementById('adm-pass').value.trim();
-    if(p.length < 6){ alert('Password almeno 6 caratteri'); return; }
-    DATA.adminHash = await sha256hex(p);
-    DATA.session = { role:'admin' };
-    saveData(DATA);
-    renderApp();
-  };
-}
-
-/* Welcome / info */
-function renderWelcome(){
-  const card = document.createElement('div'); card.className='card cols-2';
-  card.innerHTML = `
-    <div>
-      <h2>Benvenuto — Pannello Gestione Peso</h2>
-      <p class="muted">Accedi come Admin per gestire i clienti, o come Cliente per vedere il tuo profilo.</p>
-      <h3>Perchè questo tool</h3>
-      <ul class="small">
-        <li>Calcoli BMR/TDEE con Mifflin-St Jeor.</li>
-        <li>Macro basate su g/kg proteine e % grassi.</li>
-        <li>Tracking peso e storico.</li>
-      </ul>
-      <div style="margin-top:12px" class="muted">Fonti: Mifflin et al. (BMR), ISSN (proteine), linee guida dietetiche per macronutrienti.</div>
-    </div>
-    <div>
-      <div class="card">
-        <h3>Azioni rapide</h3>
-        <button onclick="renderAdminLogin()">Login Admin</button>
-        <button onclick="renderClientLogin()" style="margin-top:10px">Login Cliente</button>
-      </div>
-    </div>
-  `;
-  root.appendChild(card);
-}
-
-/* Admin login */
-function renderAdminLogin(){
-  root.innerHTML = '';
-  const card = document.createElement('div'); card.className='card';
-  card.innerHTML = `
-    <h2>Login Admin</h2>
-    <label>Password</label><input id="admin-pass" type="password" />
-    <div class="muted">Se è la prima esecuzione, crea la password dalla schermata iniziale.</div>
-    <button id="admin-do">Accedi</button>
-  `;
-  root.appendChild(card);
-  document.getElementById('admin-do').onclick = async () => {
-    const p = document.getElementById('admin-pass').value;
-    const h = await sha256hex(p);
-    if(h === DATA.adminHash){
-      DATA.session = { role:'admin' };
-      saveData(DATA);
-      renderApp();
-    } else alert('Password errata');
-  };
-}
-
-/* Client login */
-function renderClientLogin(){
-  root.innerHTML = '';
-  const card = document.createElement('div'); card.className='card';
-  card.innerHTML = `
-    <h2>Login Cliente</h2>
-    <label>Client ID</label><input id="client-id" />
-    <label>PIN (4 cifre)</label><input id="client-pin" />
-    <div class="muted">Il PIN viene generato dall'admin e consegnato al cliente.</div>
-    <button id="client-do">Accedi</button>
-  `;
-  root.appendChild(card);
-  document.getElementById('client-do').onclick = async () => {
-    const id = document.getElementById('client-id').value.trim();
-    const pin = document.getElementById('client-pin').value.trim();
-    const client = DATA.clients.find(c=>c.id === id);
-    if(!client){ alert('Client ID non trovato'); return; }
-    const pinHash = await sha256hex(pin);
-    if(pinHash === client.pinHash){
-      DATA.session = { role:'client', id: id };
-      saveData(DATA);
-      renderApp();
-    } else alert('PIN errato');
-  };
-}
-
-/* Admin panel */
-function renderAdminPanel(){
-  root.innerHTML = '';
-  const container = document.createElement('div'); container.className='grid cols-2';
-  // left: clients list + form
-  const left = document.createElement('div'); left.className='card';
-  left.innerHTML = `<h2>Dashboard Admin</h2><div class="small muted">Gestisci clienti, schede e storico</div>
-    <div id="client-list"></div>
-    <hr/>
-    <h3>Aggiungi Cliente</h3>
-    <label>Nome</label><input id="c-name" />
-    <label>Sesso</label>
-    <select id="c-sex"><option value="male">Maschio</option><option value="female">Femmina</option></select>
-    <label>Data nascita</label><input id="c-dob" type="date" />
-    <label>Altezza (cm)</label><input id="c-height" type="number" />
-    <label>Peso attuale (kg)</label><input id="c-weight" type="number" />
-    <label>Attività</label>
-    <select id="c-activity">
-      <option value="sedentary">Sedentario</option>
-      <option value="light">Leggermente attivo</option>
-      <option value="moderate" selected>Moderato</option>
-      <option value="active">Molto attivo</option>
-      <option value="very">Estremamente attivo</option>
-    </select>
-    <label>Obiettivo</label>
-    <select id="c-goal"><option value="loss">Perdita grasso</option><option value="maint">Mantenimento</option><option value="gain">Aumento massa</option></select>
-    <button id="add-client">Crea Cliente</button>
-  `;
-  container.appendChild(left);
-
-  // right: dettaglio selezionato / preview
-  const right = document.createElement('div'); right.className='card';
-  right.id = 'admin-detail';
-  right.innerHTML = `<h3>Dettaglio Cliente</h3><div class="muted">Seleziona un cliente dalla lista per modificarlo</div>`;
-  container.appendChild(right);
-
-  root.appendChild(container);
-
-  // list
-  refreshClientList();
-  document.getElementById('add-client').onclick = async () => {
-    const name = document.getElementById('c-name').value.trim();
-    const sex = document.getElementById('c-sex').value;
-    const dob = document.getElementById('c-dob').value;
-    const height = Number(document.getElementById('c-height').value);
-    const weight = Number(document.getElementById('c-weight').value);
-    const activity = document.getElementById('c-activity').value;
-    const goal = document.getElementById('c-goal').value;
-    if(!name || !dob || !height || !weight){ alert('Compila tutti i campi'); return; }
-    const id = makeId();
-    const pin = makePin();
-    const pinHash = await sha256hex(pin);
-    const client = { id, name, sex, dob, heightCm:height, weightKg:weight, activity, goal, pinHash, notes:'', weightHistory:[ {date:new Date().toISOString().slice(0,10), weight:weight} ], macroPlan:null };
-    DATA.clients.push(client);
-    saveData(DATA);
-    refreshClientList();
-    alert('Cliente creato. ID: ' + id + '  PIN: ' + pin + '  (consegnalo al cliente)');
-  };
-}
-
-/* refresh client list in admin */
-function refreshClientList(){
-  const el = document.getElementById('client-list');
-  el.innerHTML = '';
-  if(DATA.clients.length === 0){ el.innerHTML = '<div class="muted">Nessun cliente ancora.</div>'; return; }
-  const table = document.createElement('table');
-  table.innerHTML = `<thead><tr><th>ID</th><th>Nome</th><th>Obiettivo</th><th>Azioni</th></tr></thead>`;
-  const tbody = document.createElement('tbody');
-  DATA.clients.forEach(c=>{
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${c.id}</td><td>${c.name}</td><td>${c.goal}</td><td>
-      <button data-id="${c.id}" class="view">Vedi</button>
-      <button data-id="${c.id}" class="del">Elimina</button>
-    </td>`;
-    tbody.appendChild(tr);
-  });
-  table.appendChild(tbody);
-  el.appendChild(table);
-  // attach events
-  [...el.querySelectorAll('button.view')].forEach(b=>b.onclick = (ev)=> renderClientDetail(ev.target.dataset.id));
-  [...el.querySelectorAll('button.del')].forEach(b=>b.onclick = (ev)=> {
-    if(!confirm('Eliminare questo cliente?')) return;
-    const id = ev.target.dataset.id;
-    DATA.clients = DATA.clients.filter(x=>x.id !== id);
-    saveData(DATA);
-    refreshClientList();
-    document.getElementById('admin-detail').innerHTML = '<h3>Dettaglio Cliente</h3><div class="muted">Seleziona un cliente dalla lista per modificarlo</div>';
-  });
-}
-
-/* Admin: dettaglio cliente */
-function renderClientDetail(id){
-  const client = DATA.clients.find(c=>c.id===id);
-  if(!client) return;
-  const el = document.getElementById('admin-detail');
-  el.innerHTML = `
-    <h3>${client.name} <span class="pill">${client.id}</span></h3>
-    <label>Nome</label><input id="edit-name" value="${client.name}" />
-    <label>Altezza cm</label><input id="edit-height" type="number" value="${client.heightCm}" />
-    <label>Peso kg</label><input id="edit-weight" type="number" value="${client.weightKg}" />
-    <label>Attività</label>
-    <select id="edit-activity">
-      <option value="sedentary">Sedentario</option>
-      <option value="light">Leggermente attivo</option>
-      <option value="moderate">Moderato</option>
-      <option value="active">Molto attivo</option>
-      <option value="very">Estremamente attivo</option>
-    </select>
-    <label>Obiettivo</label>
-    <select id="edit-goal">
-      <option value="loss">Perdita grasso</option><option value="maint">Mantenimento</option><option value="gain">Aumento massa</option>
-    </select>
-    <label>Note</label><textarea id="edit-notes">${client.notes || ''}</textarea>
-    <div style="display:flex;gap:8px">
-      <button id="save-client">Salva</button>
-      <button id="add-weight">Aggiungi peso (storico)</button>
-      <button id="gen-plan">Genera Macro Plan</button>
-    </div>
-    <div id="client-plan-preview" style="margin-top:12px"></div>
-  `;
-  document.getElementById('edit-activity').value = client.activity;
-  document.getElementById('edit-goal').value = client.goal;
-  // events
-  document.getElementById('save-client').onclick = () => {
-    client.name = document.getElementById('edit-name').value.trim();
-    client.heightCm = Number(document.getElementById('edit-height').value) || client.heightCm;
-    client.weightKg = Number(document.getElementById('edit-weight').value) || client.weightKg;
-    client.activity = document.getElementById('edit-activity').value;
-    client.goal = document.getElementById('edit-goal').value;
-    client.notes = document.getElementById('edit-notes').value;
-    saveData(DATA);
-    refreshClientList();
-    alert('Salvato');
-  };
-  document.getElementById('add-weight').onclick = () => {
-    const w = Number(prompt('Peso (kg)', client.weightKg));
-    if(!w) return;
-    client.weightKg = w;
-    client.weightHistory.push({ date: new Date().toISOString().slice(0,10), weight: w });
-    saveData(DATA);
-    alert('Peso aggiunto');
-  };
-  document.getElementById('gen-plan').onclick = () => {
-    const age = Math.floor((new Date() - new Date(client.dob)) / (1000*60*60*24*365.25));
-    const bmr = calcBMR({ sex: client.sex, weightKg: client.weightKg, heightCm: client.heightCm, age });
-    const tdee = calcTDEE(bmr, client.activity);
-    const target = targetCalories(tdee, client.goal === 'maint' ? 'maint' : (client.goal === 'loss' ? 'loss' : 'gain'));
-    // default protein per kg depends on goal
-    const proteinPerKg = client.goal === 'gain' ? 1.8 : (client.goal === 'loss' ? 1.8 : 1.6);
-    const fatPercent = 0.25;
-    const macros = calcMacros({ weightKg: client.weightKg, calories: target, proteinPerKg, fatPercent });
-    client.macroPlan = { date: new Date().toISOString().slice(0,10), bmr, tdee, target, macros };
-    saveData(DATA);
-    renderPlanPreview(client);
-  };
-  renderPlanPreview(client);
-}
-
-function renderPlanPreview(client){
-  const div = document.getElementById('client-plan-preview');
-  if(!client.macroPlan){ div.innerHTML = '<div class="muted">Nessun piano generato</div>'; return; }
-  const p = client.macroPlan;
-  div.innerHTML = `
-    <h4>Piano generato ${p.date}</h4>
-    <div class="small">BMR: ${p.bmr} kcal • TDEE: ${p.tdee} kcal • Target: ${p.target} kcal</div>
-    <table style="margin-top:8px">
-      <tr><th>Calorie</th><td>${p.macros.calories} kcal</td></tr>
-      <tr><th>Proteine</th><td>${p.macros.proteinG} g (${p.macros.proteinPerKg} g/kg)</td></tr>
-      <tr><th>Grassi</th><td>${p.macros.fatG} g (${Math.round(p.macros.fatPercent*100)}% kcal)</td></tr>
-      <tr><th>Carboidrati</th><td>${p.macros.carbsG} g</td></tr>
-    </table>
-  `;
-}
-
-/* Client view (only proprio profilo) */
-function renderClientView(id){
-  const client = DATA.clients.find(c=>c.id===id);
-  if(!client){ alert('Sessione cliente invalida'); DATA.session=null; saveData(DATA); renderApp(); return; }
-  root.innerHTML = '';
-  const card = document.createElement('div'); card.className='card';
-  const age = Math.floor((new Date() - new Date(client.dob)) / (1000*60*60*24*365.25));
-  const bmr = calcBMR({ sex: client.sex, weightKg: client.weightKg, heightCm: client.heightCm, age });
-  const tdee = calcTDEE(bmr, client.activity);
-  const target = client.macroPlan ? client.macroPlan.target : targetCalories(tdee, client.goal === 'maint' ? 'maint' : (client.goal === 'loss' ? 'loss' : 'gain'));
-  const macros = client.macroPlan ? client.macroPlan.macros : calcMacros({ weightKg: client.weightKg, calories: target });
-  card.innerHTML = `
-    <h2>Ciao ${client.name}</h2>
-    <div class="muted">ID: ${client.id}</div>
-    <div style="display:flex;gap:14px;margin-top:10px">
-      <div class="card" style="flex:1">
-        <h4>Profilo</h4>
-        <div class="small">Età: ${age} • Altezza: ${client.heightCm} cm • Peso: ${client.weightKg} kg</div>
-        <div style="margin-top:10px"><strong>Obiettivo:</strong> ${client.goal}</div>
-        <div style="margin-top:12px"><strong>Note coach:</strong><div class="muted">${client.notes || '—'}</div></div>
-      </div>
-      <div class="card" style="width:320px">
-        <h4>Piano nutrizionale</h4>
-        <div class="small">Target: <strong>${macros.calories} kcal</strong></div>
-        <table style="margin-top:8px">
-          <tr><th>Proteine</th><td>${macros.proteinG} g</td></tr>
-          <tr><th>Grassi</th><td>${macros.fatG} g</td></tr>
-          <tr><th>Carboidrati</th><td>${macros.carbsG} g</td></tr>
-        </table>
-        <div style="margin-top:8px;font-size:12px" class="muted">Usa questo schema come base; il coach può modificare il piano.</div>
-      </div>
-    </div>
-    <div style="margin-top:12px" id="client-history">
-      <h4>Storico peso</h4>
-    </div>
-  `;
-  root.appendChild(card);
-  renderClientHistory(client);
-}
-
-/* storico peso semplice */
-function renderClientHistory(client){
-  const el = document.getElementById('client-history');
-  if(!el) return;
-  el.innerHTML = '<h4>Storico peso</h4>';
-  if(!client.weightHistory || client.weightHistory.length===0){ el.innerHTML += '<div class="muted">Nessun dato</div>'; return; }
-  const table = document.createElement('table');
-  table.innerHTML = `<thead><tr><th>Data</th><th>Peso (kg)</th></tr></thead>`;
-  const tbody = document.createElement('tbody');
-  client.weightHistory.slice().reverse().forEach(w=> {
-    const tr = document.createElement('tr'); tr.innerHTML = `<td>${w.date}</td><td>${w.weight}</td>`;
-    tbody.appendChild(tr);
-  });
-  table.appendChild(tbody);
-  el.appendChild(table);
-}
-
-/* initialize and render */
-renderApp();
-
-/* Expose some helpers for debugging in console */
-window.__GP = { loadData: () => { DATA = loadData(); return DATA; }, saveData: ()=> saveData(DATA), DATA };
 </script>
-
 </body>
 </html>

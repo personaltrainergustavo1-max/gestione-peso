@@ -1,242 +1,534 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="it">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Gestione Peso Clienti</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>CoachPro — Gestione Peso</title>
 
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<!-- jsPDF -->
+<!-- Fonts + Chart.js + jsPDF + html2canvas -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <style>
-body {
-  font-family: Arial, sans-serif;
-  background-color: var(--bg-color, #f4f4f4);
-  color: var(--text-color, #000);
-  margin: 20px;
+:root{
+  --bg:#07121a; --card:#0b1a23; --accent:#14b8ff; --muted:#8aa3b2; --text:#e6f3fb;
+  --radius:12px;
 }
-.container { max-width: 600px; margin: auto; }
-
-button {
-  padding: 10px;
-  width: 100%;
-  margin-top: 10px;
-  cursor: pointer;
-}
-
-input, select {
-  width: 100%;
-  padding: 8px;
-  margin-top: 5px;
-}
-
-.hidden { display: none; }
-
-.dark-mode {
-  --bg-color: #111;
-  --text-color: #fff;
-}
-.chat-box {
-  border: 1px solid #aaa;
-  padding: 10px;
-  height: 150px;
-  overflow-y: auto;
-  background: #fafafa;
-}
+*{box-sizing:border-box}
+body{font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--text);margin:0;padding:16px}
+.container{max-width:1100px;margin:0 auto}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.brand{display:flex;gap:12px;align-items:center}
+.logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(180deg,#14b8ff,#036);display:flex;align-items:center;justify-content:center;font-weight:700;color:#022b3a}
+.title{font-size:18px;font-weight:700}
+.card{background:var(--card);padding:14px;border-radius:var(--radius);border:1px solid rgba(255,255,255,0.03);margin-bottom:12px}
+.row{display:flex;gap:12px}
+.col{flex:1}
+.btn{background:var(--accent);color:#012;border:0;padding:10px 12px;border-radius:10px;cursor:pointer;font-weight:700}
+.btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--text);padding:8px 10px;border-radius:8px}
+.input{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:var(--text);margin-top:8px}
+.small{color:var(--muted);font-size:13px}
+.center{text-align:center}
+.thumb{width:100px;height:100px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.04)}
+.switch{display:flex;align-items:center;gap:8px}
+@media(max-width:900px){ .row{flex-direction:column} .thumb{width:80px;height:80px} }
 </style>
 </head>
-
 <body>
 <div class="container">
+  <div class="header">
+    <div class="brand">
+      <div class="logo">CP</div>
+      <div>
+        <div class="title">CoachPro • Gestione Peso</div>
+        <div class="small">Accesso clienti & pannello coach</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div class="switch small">
+        <label for="themeToggle">Day / Night</label>
+        <input id="themeToggle" type="checkbox" />
+      </div>
+      <button id="btnSignOut" class="btn-ghost" style="display:none">Esci</button>
+    </div>
+  </div>
 
-<h2>Gestione Peso Clienti</h2>
+  <!-- AUTH CARD -->
+  <div id="authCard" class="card">
+    <h3>Accedi o registrati</h3>
+    <div class="small">Accedi con Email/Password o con Google (consigliato)</div>
+    <input id="email" class="input" placeholder="Email" />
+    <input id="password" class="input" type="password" placeholder="Password" />
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button id="btnLogin" class="btn">Login</button>
+      <button id="btnRegister" class="btn" style="background:#22c55e">Registrati</button>
+      <button id="btnGoogle" class="btn-ghost">Accedi con Google</button>
+    </div>
+    <div class="small" style="margin-top:8px">Nota: il primo account creato diventerà automaticamente Admin (puoi cambiare la flag su Firestore).</div>
+  </div>
 
-<button onclick="toggleDark()">🌙 / ☀️ Modalità</button>
+  <!-- APP -->
+  <div id="app" style="display:none">
 
-<!-- LOGIN -->
-<div id="loginSection">
-  <h3>Login</h3>
-  <input id="loginName" placeholder="Nome cliente / admin">
-  <button onclick="login()">Accedi</button>
+    <div class="row">
+      <!-- LEFT: Main -->
+      <div class="col">
+
+        <!-- PROFILE CARD -->
+        <div class="card" id="profileCard">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <h3 id="profileName">Benvenuto</h3>
+              <div class="small" id="profileEmail">—</div>
+            </div>
+            <div>
+              <div class="small">Ruolo: <span id="roleLabel">Cliente</span></div>
+            </div>
+          </div>
+
+          <div style="margin-top:12px">
+            <label class="small">Peso attuale (kg)</label>
+            <input id="inputWeight" class="input" type="number" placeholder="es. 78.5">
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button class="btn" id="saveWeightBtn">Aggiungi peso</button>
+              <button class="btn-ghost" id="downloadPDFBtn">Scarica scheda PDF</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="card">
+          <h4>Andamento Peso</h4>
+          <canvas id="weightChart" height="160"></canvas>
+          <div class="small" style="margin-top:8px">Aggiorna frequentemente per ottenere stime tempo/obiettivo.</div>
+        </div>
+
+        <!-- Photos -->
+        <div class="card">
+          <h4>Foto progresso</h4>
+          <input id="photoInput" type="file" accept="image/*" class="input"/>
+          <button id="uploadPhotoBtn" class="btn">Carica foto</button>
+          <div id="photosGrid" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"></div>
+        </div>
+
+        <!-- Self-test / Goal -->
+        <div class="card">
+          <h4>Obiettivo e Self-test</h4>
+          <label class="small">Peso obiettivo (kg)</label>
+          <input id="targetWeight" class="input" placeholder="es. 75">
+          <label class="small">Intolleranze (separate da virgola)</label>
+          <input id="intolerances" class="input" placeholder="lattosio, glutine">
+          <div style="margin-top:8px;display:flex;gap:8px">
+            <button id="saveProfileBtn" class="btn">Salva profilo</button>
+            <button id="calcETA" class="btn-ghost">Calcola tempo stimato</button>
+          </div>
+          <div id="etaOut" class="small" style="margin-top:8px"></div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT: Sidebar (Admin tools + AI) -->
+      <div style="width:360px">
+        <!-- Admin Panel -->
+        <div class="card" id="adminPanel" style="display:none">
+          <h4>Admin • Gestione clienti</h4>
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <input id="newClientName" class="input" placeholder="Nome nuovo cliente"/>
+            <button id="createClientBtn" class="btn">Crea</button>
+          </div>
+          <div id="clientsList" style="max-height:260px;overflow:auto"></div>
+          <div style="margin-top:8px;display:flex;gap:8px">
+            <button id="exportAllBtn" class="btn-ghost">Backup JSON</button>
+            <button id="impBtn" class="btn-ghost">Import JSON</button>
+          </div>
+        </div>
+
+        <!-- AI Assistant -->
+        <div class="card">
+          <h4>Assistente Virtuale</h4>
+          <textarea id="aiQuestion" class="input" rows="3" placeholder="Chiedi qualcosa..."></textarea>
+          <button id="aiSend" class="btn">Invia alla AI</button>
+          <div id="aiAnswer" class="small" style="margin-top:8px"></div>
+        </div>
+
+        <!-- USDA quick search -->
+        <div class="card">
+          <h4>Ricerca alimenti (USDA)</h4>
+          <input id="usdaQuery" class="input" placeholder="es. chicken, apple"/>
+          <button id="usdaSearch" class="btn">Cerca</button>
+          <div id="usdaOut" class="small" style="margin-top:8px;max-height:180px;overflow:auto"></div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <div class="small center" style="margin-top:8px">Disclaimer: info a scopo informativo. Per patologie contatta un professionista.</div>
 </div>
 
-<!-- ADMIN -->
-<div id="adminSection" class="hidden">
-  <h3>Area Admin</h3>
-  <input id="newUser" placeholder="Nome nuovo cliente">
-  <button onclick="createClient()">➕ Crea nuovo cliente</button>
+<!-- Firebase modular SDK (v10+ from CDN) -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+  import { getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
-  <h4>Clienti registrati</h4>
-  <ul id="clientList"></ul>
+  // ----------------- CONFIG FIREBASE (tu l'hai fornita) -----------------
+  const firebaseConfig = {
+    apiKey: "AIzaSyCE3yccgXo00Up-iekaAdgffOo_YyqXNuE",
+    authDomain: "gestione-peso-1d758.firebaseapp.com",
+    projectId: "gestione-peso-1d758",
+    storageBucket: "gestione-peso-1d758.firebasestorage.app",
+    messagingSenderId: "121949363903",
+    appId: "1:121949363903:web:4eb5f5a7131109ea8bb00a",
+    measurementId: "G-WGBB30D5FK"
+  };
+  // -----------------------------------------------------------------------
 
-  <button onclick="logout()">Logout</button>
-</div>
+  // Cloudflare Worker URL (proxy) — confermato da te
+  const WORKER_URL = "https://gino.personaltrainergustavo1.workers.dev";
 
-<!-- CLIENT -->
-<div id="clientSection" class="hidden">
-  <h3 id="clientTitle"></h3>
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const storage = getStorage(app);
 
-  <label>Inserisci peso (kg)</label>
-  <input id="pesoInput" type="number">
-  <button onclick="addPeso()">📊 Aggiungi Peso</button>
+  // UI elements
+  const authCard = document.getElementById('authCard');
+  const appDiv = document.getElementById('app');
+  const btnLogin = document.getElementById('btnLogin');
+  const btnRegister = document.getElementById('btnRegister');
+  const btnGoogle = document.getElementById('btnGoogle');
+  const btnSignOut = document.getElementById('btnSignOut');
 
-  <canvas id="pesoChart" height="150"></canvas>
+  const profileName = document.getElementById('profileName');
+  const profileEmail = document.getElementById('profileEmail');
+  const roleLabel = document.getElementById('roleLabel');
 
-  <hr>
-  <h3>Genera Dieta</h3>
-  <label>Obiettivo</label>
-  <select id="goal">
-    <option>Perdita peso</option>
-    <option>Aumento massa</option>
-    <option>Definizione / tonificazione</option>
-  </select>
+  const inputWeight = document.getElementById('inputWeight');
+  const saveWeightBtn = document.getElementById('saveWeightBtn');
+  const weightChartCtx = document.getElementById('weightChart');
 
-  <label>Intolleranze</label>
-  <input id="intolleranze" placeholder="es: lattosio, glutine...">
+  const photoInput = document.getElementById('photoInput');
+  const uploadPhotoBtn = document.getElementById('uploadPhotoBtn');
+  const photosGrid = document.getElementById('photosGrid');
 
-  <button onclick="generaPDF()">📄 Scarica Dieta PDF</button>
+  const targetWeightEl = document.getElementById('targetWeight');
+  const intolerancesEl = document.getElementById('intolerances');
+  const saveProfileBtn = document.getElementById('saveProfileBtn');
+  const calcETABtn = document.getElementById('calcETA');
+  const etaOut = document.getElementById('etaOut');
 
-  <hr>
-  <h3>Assistente Nutrizionale</h3>
+  const newClientName = document.getElementById('newClientName');
+  const createClientBtn = document.getElementById('createClientBtn');
+  const clientsList = document.getElementById('clientsList');
 
-  <div class="chat-box" id="chatBox"></div>
-  <input id="question" placeholder="Scrivi una domanda..." />
-  <button onclick="askBot()">Invia</button>
+  const exportAllBtn = document.getElementById('exportAllBtn');
+  const impBtn = document.getElementById('impBtn');
 
-  <button onclick="logout()">Logout</button>
-</div>
+  const aiQuestion = document.getElementById('aiQuestion');
+  const aiSend = document.getElementById('aiSend');
+  const aiAnswer = document.getElementById('aiAnswer');
 
-</div>
+  const usdaQuery = document.getElementById('usdaQuery');
+  const usdaSearch = document.getElementById('usdaSearch');
+  const usdaOut = document.getElementById('usdaOut');
 
-<script>
-// -------- DARK MODE --------
-function toggleDark(){
-  document.body.classList.toggle("dark-mode");
-}
+  const themeToggle = document.getElementById('themeToggle');
 
-// -------- DATA --------
-let data = JSON.parse(localStorage.getItem("fitData")) || {
-  users: ["admin"], // admin default
-  peso: {},
-};
+  // local state
+  let currentUser = null;
+  let currentUserDoc = null;
+  let chart = null;
 
-// -------- SAVE --------
-function save(){
-  localStorage.setItem("fitData", JSON.stringify(data));
-}
+  // ---------------- THEME ----------------
+  (function initTheme(){
+    const t = localStorage.getItem('cp_theme') || 'dark';
+    if(t === 'dark'){ document.documentElement.style.background = 'var(--bg)'; themeToggle.checked = true; }
+    else { document.documentElement.style.background = '#fff'; themeToggle.checked = false; }
+  })();
+  themeToggle.addEventListener('change', ()=> {
+    const v = themeToggle.checked ? 'dark' : 'light';
+    localStorage.setItem('cp_theme', v);
+    if(v==='dark') document.documentElement.style.background = 'var(--bg)'; else document.documentElement.style.background = '#fff';
+  });
 
-// -------- LOGIN --------
-function login(){
-  let name = loginName.value.trim();
-  if(!name) return alert("Inserisci nome");
+  // ---------------- AUTH ----------------
+  btnGoogle.addEventListener('click', async ()=>{
+    try{
+      const provider = new GoogleAuthProvider();
+      const res = await signInWithPopup(auth, provider);
+      // user handled in onAuthStateChanged
+    }catch(e){ alert(e.message || e); }
+  });
 
-  if(name === "admin"){
-    loginSection.classList.add("hidden");
-    adminSection.classList.remove("hidden");
-    loadClientList();
-  } else if(data.users.includes(name)){
-    currentUser = name;
-    loginSection.classList.add("hidden");
-    clientSection.classList.remove("hidden");
-    clientTitle.innerText = "Benvenuto " + name;
-    loadChart();
-  } else {
-    alert("Utente non trovato");
+  btnRegister.addEventListener('click', async ()=>{
+    try{
+      const cred = await createUserWithEmailAndPassword(auth, email.value, password.value);
+      // create user doc
+      await setDoc(doc(db, 'users', cred.user.uid), { email: cred.user.email, isAdmin: false, createdAt: new Date().toISOString(), createdBy: 'self', weights: [], photos: [], profile: {} });
+      alert('Registrazione completata. Benvenuto!');
+    }catch(e){ alert(e.message || e); }
+  });
+
+  btnLogin.addEventListener('click', async ()=>{
+    try{
+      await signInWithEmailAndPassword(auth, email.value, password.value);
+    }catch(e){ alert(e.message || e); }
+  });
+
+  btnSignOut.addEventListener('click', async ()=> { await signOut(auth); });
+
+  // on auth change
+  onAuthStateChanged(auth, async (user) => {
+    if(!user){
+      currentUser = null; currentUserDoc = null;
+      authCard.style.display = 'block'; appDiv.style.display = 'none'; btnSignOut.style.display='none';
+      return;
+    }
+    currentUser = user;
+    btnSignOut.style.display = 'inline-block';
+    authCard.style.display = 'none'; appDiv.style.display = 'block';
+    profileEmail.innerText = user.email;
+    // ensure user doc exists
+    const udocRef = doc(db, 'users', user.uid);
+    const udocSnap = await getDoc(udocRef);
+    if(!udocSnap.exists()){
+      // if first user in collection, make admin
+      const usersCol = await getDocs(collection(db,'users'));
+      const isFirst = usersCol.empty;
+      await setDoc(udocRef, { email: user.email, isAdmin: isFirst, createdAt: new Date().toISOString(), weights: [], photos: [], profile: {} });
+    }
+    currentUserDoc = (await getDoc(udocRef)).data();
+    profileName.innerText = currentUserDoc.profile?.name || (user.displayName || user.email.split('@')[0]);
+    roleLabel.innerText = currentUserDoc.isAdmin ? 'Admin' : 'Cliente';
+    // load user data
+    await loadUserData();
+    if(currentUserDoc.isAdmin) renderAdminPanel();
+  });
+
+  // ---------------- LOAD & SAVE DATA ----------------
+  async function loadUserData(){
+    // user document
+    const uref = doc(db,'users',currentUser.uid);
+    const snap = await getDoc(uref);
+    const data = snap.data() || {};
+    currentUserDoc = data;
+    // UI fields
+    targetWeightEl.value = data.profile?.targetWeight || '';
+    intolerancesEl.value = (data.profile?.intolerances || []).join(', ');
+    renderPhotos(data.photos || []);
+    renderChart(data.weights || []);
+    // clients list if admin
+    if(currentUserDoc.isAdmin) await renderAllClients();
   }
-}
 
-function logout(){
-  location.reload();
-}
+  async function pushWeightEntry(value){
+    const ref = doc(db,'users',currentUser.uid);
+    // append to weights array (simple) and update last weight
+    await updateDoc(ref, { weights: arrayUnion(value) }).catch(async e => {
+      // if update fails because doc missing, set doc
+      const snap = await getDoc(ref);
+      if(!snap.exists()) {
+        await setDoc(ref, { email: currentUser.email, isAdmin:false, weights:[value], photos:[], profile:{} });
+      }
+    });
+    await loadUserData();
+  }
 
-// -------- ADMIN: CREATE CLIENT --------
-function createClient(){
-  let u = newUser.value.trim();
-  if(!u) return;
-  if(data.users.includes(u)) return alert("Cliente già esistente");
-  data.users.push(u);
-  save();
-  loadClientList();
-}
+  // ---------------- CHART ----------------
+  function renderChart(weights){
+    const labels = (weights || []).map((_,i)=>i+1);
+    const data = weights || [];
+    if(chart) chart.destroy();
+    chart = new Chart(weightChart, {
+      type:'line',
+      data: { labels, datasets:[{ label:'Peso (kg)', data, borderColor:'rgba(20,184,166,0.95)', backgroundColor:'rgba(20,184,166,0.08)', tension:0.25 }]},
+      options:{ responsive:true, plugins:{legend:{display:false}}}
+    });
+  }
 
-function loadClientList(){
-  clientList.innerHTML = "";
-  data.users.forEach(u=>{
-    if(u !== "admin"){
-      let li = document.createElement("li");
-      li.textContent = u;
-      clientList.appendChild(li);
-    }
+  saveWeightBtn.addEventListener('click', async ()=>{
+    const v = Number(inputWeight.value);
+    if(!v) return alert('Inserisci un peso valido');
+    await pushWeightEntry(v);
+    inputWeight.value = '';
   });
-}
 
-// -------- CLIENT: PESO --------
-let currentUser = null;
-
-function addPeso(){
-  let p = Number(pesoInput.value);
-  if(!p) return alert("Inserisci peso valido");
-
-  if(!data.peso[currentUser]) data.peso[currentUser] = [];
-  data.peso[currentUser].push({date: new Date().toLocaleDateString(), peso: p});
-  save();
-  loadChart();
-}
-
-let chart;
-
-function loadChart(){
-  let arr = data.peso[currentUser] || [];
-  let ctx = document.getElementById("pesoChart");
-
-  if(chart) chart.destroy();
-
-  chart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: arr.map(e=>e.date),
-      datasets: [{
-        label: "Peso (kg)",
-        data: arr.map(e=>e.peso)
-      }]
-    }
+  // ---------------- PHOTOS ----------------
+  uploadPhotoBtn.addEventListener('click', async ()=>{
+    const f = photoInput.files[0];
+    if(!f) return alert('Seleziona un file');
+    const path = `users/${currentUser.uid}/photos/${Date.now()}_${f.name}`;
+    const storageRef = ref(storage, path);
+    const snapshot = await uploadBytes(storageRef, f);
+    const url = await getDownloadURL(snapshot.ref);
+    // update user doc
+    const uref = doc(db,'users',currentUser.uid);
+    await updateDoc(uref, { photos: arrayUnion({ url, date: new Date().toISOString() }) }).catch(async ()=>{
+      await setDoc(uref, { email: currentUser.email, isAdmin:false, weights:[], photos:[{url,date:new Date().toISOString()}], profile:{} });
+    });
+    await loadUserData();
   });
-}
 
-// -------- PDF DIETA --------
-function generaPDF(){
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
+  function renderPhotos(photos){
+    photosGrid.innerHTML = '';
+    (photos || []).slice().reverse().forEach(p=>{
+      const d = document.createElement('div'); d.style.margin='6px';
+      d.innerHTML = `<img src="${p.url}" class="thumb"><div class="small">${(new Date(p.date)).toLocaleDateString()}</div>`;
+      photosGrid.appendChild(d);
+    });
+  }
 
-  doc.text("Piano Alimentare Personalizzato", 10, 10);
-  doc.text("Cliente: " + currentUser, 10, 20);
-  doc.text("Obiettivo: " + goal.value, 10, 30);
-  doc.text("Intolleranze: " + intolleranze.value, 10, 40);
+  // ---------------- PROFILE SAVE ----------------
+  saveProfileBtn.addEventListener('click', async ()=>{
+    const target = Number(targetWeightEl.value) || null;
+    const intolerances = intolerancesEl.value.split(',').map(s=>s.trim()).filter(Boolean);
+    const uref = doc(db,'users',currentUser.uid);
+    await updateDoc(uref, { profile: {...(currentUserDoc.profile||{}), targetWeight: target, intolerances} });
+    alert('Profilo aggiornato');
+    await loadUserData();
+  });
 
-  doc.text("Linee guida generali:", 10, 60);
-  doc.text("- Proteine magre\n- Verdure abbondanti\n- Acqua 2L/giorno\n- Cereali integrali", 10, 70);
+  // ---------------- ETA estimation ----------------
+  calcETABtn.addEventListener('click', ()=>{
+    const weights = (currentUserDoc.weights||[]).slice().map(Number);
+    if(weights.length < 2) return alert('Servono almeno 2 rilevazioni');
+    const last = weights[weights.length-1];
+    const first = weights[Math.max(0, weights.length-7)]; // last 7 entries approx
+    const delta = last - first;
+    const days = (weights.length-1) * 7 / Math.max(1, weights.length-1); // rough
+    const ratePerWeek = (delta / Math.max(1, weights.length-1)) * 7;
+    const target = currentUserDoc.profile?.targetWeight;
+    if(!target) return alert('Imposta un peso obiettivo prima');
+    const remaining = target - last;
+    if(Math.abs(ratePerWeek) < 0.01) return etaOut.innerText = 'Trend vicino a zero: impossibile stimare';
+    const weeks = Math.abs(Math.round(remaining / ratePerWeek));
+    etaOut.innerText = weeks + ' settimane (stima basata sul trend recente).';
+  });
 
-  doc.save("dieta_" + currentUser + ".pdf");
-}
+  // ---------------- ADMIN: clients ----------------
+  async function renderAllClients(){
+    clientsList.innerHTML = '';
+    const usersCol = collection(db,'users');
+    const snaps = await getDocs(usersCol);
+    snaps.forEach(s=>{
+      const d = s.data();
+      const id = s.id;
+      const div = document.createElement('div'); div.className='small card'; div.style.padding='8px'; div.style.marginBottom='8px';
+      div.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${d.profile?.name || d.email}</strong><div class="small">id: ${id}</div></div>
+      <div style="display:flex;gap:8px"><button class="btn-ghost" onclick="openClientProfile('${id}')">Apri</button><button class="btn" onclick="impersonate('${id}')">Login come</button></div></div>`;
+      clientsList.appendChild(div);
+    });
+  }
 
-// -------- MINI AI LOCAL --------
-const faq = {
-  "come dimagrire":"Riduci carboidrati raffinati, aumenta proteine, fai camminate quotidiane.",
-  "come aumentare massa":"+300 kcal, proteine alte, pesi 3 volte settimana.",
-  "quanta acqua bere":"Circa 30ml/kg al giorno.",
-  "quante proteine":"1.6–2.2g/kg di peso.",
-};
+  window.openClientProfile = async function(uid){
+    // show client detail in new tab
+    const snap = await getDoc(doc(db,'users',uid));
+    const d = snap.data();
+    const w = window.open();
+    w.document.write(`<pre>${JSON.stringify(d,null,2)}</pre>`);
+    w.document.close();
+  };
 
-function askBot(){
-  let q = question.value.toLowerCase();
-  let ans = faq[q] || "Consiglio generale: dieta equilibrata, proteine adeguate, movimento giornaliero.";
-  chatBox.innerHTML += "<div><b>Tu:</b> "+question.value+"</div>";
-  chatBox.innerHTML += "<div><b>AI:</b> "+ans+"</div>";
-  question.value="";
-}
+  window.impersonate = async function(uid){
+    // simple impersonation for admin: we fetch idToken? — cannot auth as another user.
+    alert('Funzione impersonate: scarica i dati cliente in una nuova finestra (non autentica).');
+    await openClientProfile(uid);
+  };
+
+  createClientBtn.addEventListener('click', async ()=>{
+    const name = newClientName.value.trim();
+    if(!name) return alert('Inserisci nome');
+    // create a placeholder user doc — client will register later or you can fill email
+    const id = 'C'+Math.random().toString(36).slice(2,8).toUpperCase();
+    await setDoc(doc(db,'users',id), { email: '', isAdmin:false, createdAt: new Date().toISOString(), weights:[], photos:[], profile:{name} });
+    newClientName.value = '';
+    await renderAllClients();
+    alert('Cliente creato con ID: ' + id + '. Puoi completare email e credenziali manualmente.');
+  });
+
+  exportAllBtn.addEventListener('click', async ()=>{
+    const arr = [];
+    const snaps = await getDocs(collection(db,'users'));
+    snaps.forEach(s=> arr.push({ id: s.id, data: s.data() }));
+    const blob = new Blob([JSON.stringify(arr,null,2)],{type:'application/json'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'backup_users.json'; a.click();
+  });
+
+  impBtn.addEventListener('click', ()=>{
+    const inp = document.createElement('input'); inp.type='file'; inp.accept='application/json';
+    inp.onchange = async e => {
+      const f = e.target.files[0]; const txt = await f.text(); const arr = JSON.parse(txt);
+      for(const u of arr){ await setDoc(doc(db,'users',u.id), u.data); }
+      alert('Import completato'); location.reload();
+    };
+    inp.click();
+  });
+
+  // ---------------- USDA search via Worker ----------------
+  usdaSearch.addEventListener('click', async ()=>{
+    const q = usdaQuery.value.trim();
+    if(!q) return alert('Inserisci query');
+    usdaOut.innerText = 'Caricamento...';
+    try{
+      const res = await fetch(`${WORKER_URL}/api/usda?q=${encodeURIComponent(q)}`);
+      const json = await res.json();
+      if(json.foods && json.foods.length){
+        usdaOut.innerHTML = json.foods.slice(0,6).map(f=>{
+          const cal = (f.foodNutrients||[]).find(n=>/Energy/i.test(n.nutrientName));
+          return `<div style="margin-bottom:8px"><strong>${f.description}</strong><div class="small">Calories: ${cal?.value || 'n/a'} ${cal?.unitName || ''}</div></div>`;
+        }).join('');
+      } else {
+        usdaOut.innerText = 'Nessun risultato';
+      }
+    }catch(e){ usdaOut.innerText = 'Errore: ' + e.message; }
+  });
+
+  // ---------------- AI via Worker ----------------
+  aiSend.addEventListener('click', async ()=>{
+    const q = aiQuestion.value.trim();
+    if(!q) return;
+    aiAnswer.innerText = 'Elaborazione...';
+    try{
+      const payload = { messages:[{ role:'user', content: q }] };
+      const res = await fetch(`${WORKER_URL}/api/chat`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+      const json = await res.json();
+      // handle OpenAI Chat response shape
+      const out = json?.choices?.[0]?.message?.content ?? json?.choices?.[0]?.text ?? JSON.stringify(json);
+      aiAnswer.innerText = out;
+    }catch(e){ aiAnswer.innerText = 'Errore AI: ' + e.message; }
+  });
+
+  // ---------------- PDF generation (simple) ----------------
+  document.getElementById('downloadPDFBtn').addEventListener('click', async ()=>{
+    // create summary and render screenshot
+    const userSnap = (await getDoc(doc(db,'users',currentUser.uid))).data();
+    const wrapper = document.createElement('div'); wrapper.style.background='#fff'; wrapper.style.color='#000'; wrapper.style.padding='12px'; wrapper.innerHTML = `<h2>Scheda ${userSnap.profile?.name || currentUser.email}</h2>
+      <div>Obiettivo: ${userSnap.profile?.targetWeight || '—'}</div>
+      <h3>Macro plan (stima)</h3>`;
+    document.body.appendChild(wrapper);
+    const canvas = await html2canvas(wrapper, { scale:2 });
+    const img = canvas.toDataURL('image/png');
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ unit:'px', format:[canvas.width, canvas.height]});
+    pdf.addImage(img,'PNG',0,0, canvas.width, canvas.height);
+    pdf.save(`scheda_${currentUser.uid}.pdf`);
+    wrapper.remove();
+  });
+
+  // ---------------- INITIAL ----------------
+  (function init(){
+    // nothing to do, onAuthStateChanged will handle UI
+  })();
+
+  // ---------------- FIRESTORE RULES SUGGERITE (vedi sotto) ----------------
+
 </script>
+
 </body>
 </html>

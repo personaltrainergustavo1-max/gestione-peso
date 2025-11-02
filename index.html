@@ -1,99 +1,241 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Gestione Peso Clienti</title>
+
+<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- jsPDF -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 <style>
-body { font-family: Arial; margin: 0; padding: 20px; background-color: var(--bg); color: var(--text); }
-:root { --bg:#ffffff; --text:#000000; }
-.dark { --bg:#1e1e1e; --text:#f0f0f0; }
-button, input, select { padding: 8px; margin: 5px; border-radius: 6px; border:1px solid #777; }
-.card { border:1px solid #444; padding:15px; border-radius:8px; margin-bottom:20px; }
-#chartContainer { width:100%; max-width:600px; }
-.chat-box { border:1px solid #555; padding:10px; height:200px; overflow:auto; background:#fff; color:#000; }
-.dark .chat-box { background:#333; color:#fff; }
+body {
+  font-family: Arial, sans-serif;
+  background-color: var(--bg-color, #f4f4f4);
+  color: var(--text-color, #000);
+  margin: 20px;
+}
+.container { max-width: 600px; margin: auto; }
+
+button {
+  padding: 10px;
+  width: 100%;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+input, select {
+  width: 100%;
+  padding: 8px;
+  margin-top: 5px;
+}
+
+.hidden { display: none; }
+
+.dark-mode {
+  --bg-color: #111;
+  --text-color: #fff;
+}
+.chat-box {
+  border: 1px solid #aaa;
+  padding: 10px;
+  height: 150px;
+  overflow-y: auto;
+  background: #fafafa;
+}
 </style>
 </head>
-<body id="body">
-<h2>Dashboard Cliente</h2>
-<button onclick="toggleDark()">Modalità Light/Dark</button>
 
-<div class="card">
-  <h3>Inserisci peso</h3>
-  <input id="pesoInput" type="number" step="0.1" placeholder="Peso">
-  <button onclick="addPeso()">Aggiungi</button>
+<body>
+<div class="container">
+
+<h2>Gestione Peso Clienti</h2>
+
+<button onclick="toggleDark()">🌙 / ☀️ Modalità</button>
+
+<!-- LOGIN -->
+<div id="loginSection">
+  <h3>Login</h3>
+  <input id="loginName" placeholder="Nome cliente / admin">
+  <button onclick="login()">Accedi</button>
 </div>
 
-<div class="card" id="chartContainer">
-  <h3>Andamento Peso</h3>
-  <canvas id="pesoChart"></canvas>
+<!-- ADMIN -->
+<div id="adminSection" class="hidden">
+  <h3>Area Admin</h3>
+  <input id="newUser" placeholder="Nome nuovo cliente">
+  <button onclick="createClient()">➕ Crea nuovo cliente</button>
+
+  <h4>Clienti registrati</h4>
+  <ul id="clientList"></ul>
+
+  <button onclick="logout()">Logout</button>
 </div>
 
-<div class="card">
+<!-- CLIENT -->
+<div id="clientSection" class="hidden">
+  <h3 id="clientTitle"></h3>
+
+  <label>Inserisci peso (kg)</label>
+  <input id="pesoInput" type="number">
+  <button onclick="addPeso()">📊 Aggiungi Peso</button>
+
+  <canvas id="pesoChart" height="150"></canvas>
+
+  <hr>
   <h3>Genera Dieta</h3>
-  <label>Obiettivo:</label>
+  <label>Obiettivo</label>
   <select id="goal">
-    <option value="loss">Perdita peso</option>
-    <option value="gain">Aumento massa</option>
-  </select><br>
-  <label>Intolleranze:</label>
-  <input id="intolleranze" placeholder="es. lattosio, glutine"><br>
-  <input id="accept" type="checkbox"> Accetto disclaimer<br>
-  <button onclick="generateDietPDF()">Scarica Dieta PDF</button>
+    <option>Perdita peso</option>
+    <option>Aumento massa</option>
+    <option>Definizione / tonificazione</option>
+  </select>
+
+  <label>Intolleranze</label>
+  <input id="intolleranze" placeholder="es: lattosio, glutine...">
+
+  <button onclick="generaPDF()">📄 Scarica Dieta PDF</button>
+
+  <hr>
+  <h3>Assistente Nutrizionale</h3>
+
+  <div class="chat-box" id="chatBox"></div>
+  <input id="question" placeholder="Scrivi una domanda..." />
+  <button onclick="askBot()">Invia</button>
+
+  <button onclick="logout()">Logout</button>
 </div>
 
-<div class="card">
-  <h3>Assistente Virtuale</h3>
-  <div class="chat-box" id="chat"></div>
-  <input id="msg" placeholder="Scrivi una domanda...">
-  <button onclick="sendMsg()">Invia</button>
 </div>
 
 <script>
-const key = "gp_data_chart";
-let data = JSON.parse(localStorage.getItem(key) || "[]");
-function save(){ localStorage.setItem(key, JSON.stringify(data)); renderChart(); }
-function addPeso(){ const v = parseFloat(document.getElementById('pesoInput').value); if(!v) return; data.push({date:new Date().toLocaleDateString(), peso:v}); save(); }
-let chart;
-function renderChart(){
-  const ctx = document.getElementById('pesoChart');
-  if(chart) chart.destroy();
-  chart = new Chart(ctx, {
-    type: 'line',
-    data: { labels: data.map(x=>x.date), datasets: [{ label:"Peso", data: data.map(x=>x.peso), borderWidth:2 }] }
+// -------- DARK MODE --------
+function toggleDark(){
+  document.body.classList.toggle("dark-mode");
+}
+
+// -------- DATA --------
+let data = JSON.parse(localStorage.getItem("fitData")) || {
+  users: ["admin"], // admin default
+  peso: {},
+};
+
+// -------- SAVE --------
+function save(){
+  localStorage.setItem("fitData", JSON.stringify(data));
+}
+
+// -------- LOGIN --------
+function login(){
+  let name = loginName.value.trim();
+  if(!name) return alert("Inserisci nome");
+
+  if(name === "admin"){
+    loginSection.classList.add("hidden");
+    adminSection.classList.remove("hidden");
+    loadClientList();
+  } else if(data.users.includes(name)){
+    currentUser = name;
+    loginSection.classList.add("hidden");
+    clientSection.classList.remove("hidden");
+    clientTitle.innerText = "Benvenuto " + name;
+    loadChart();
+  } else {
+    alert("Utente non trovato");
+  }
+}
+
+function logout(){
+  location.reload();
+}
+
+// -------- ADMIN: CREATE CLIENT --------
+function createClient(){
+  let u = newUser.value.trim();
+  if(!u) return;
+  if(data.users.includes(u)) return alert("Cliente già esistente");
+  data.users.push(u);
+  save();
+  loadClientList();
+}
+
+function loadClientList(){
+  clientList.innerHTML = "";
+  data.users.forEach(u=>{
+    if(u !== "admin"){
+      let li = document.createElement("li");
+      li.textContent = u;
+      clientList.appendChild(li);
+    }
   });
 }
-renderChart();
-function toggleDark(){ document.body.classList.toggle("dark"); }
 
-async function generateDietPDF(){
-  if(!document.getElementById("accept").checked){ alert("Accetta il disclaimer"); return; }
-  const { jsPDF } = window.jspdf; const doc = new jsPDF();
-  const goal = document.getElementById("goal").value;
-  const intol = document.getElementById("intolleranze").value;
-  const text = `Piano Alimentare\nObiettivo: ${goal==="loss"?"Perdita Peso":"Aumento Massa"}\nIntolleranze: ${intol}\n\nColazione: Avena, frutta, proteine\nPranzo: Pollo, riso, verdure\nCena: Pesce, patate, insalata\nSpuntini: Yogurt greco, frutta secca\n*Placeholder USFCD`;
-  doc.text(text, 10, 10);
-  doc.save("piano_dieta.pdf");
+// -------- CLIENT: PESO --------
+let currentUser = null;
+
+function addPeso(){
+  let p = Number(pesoInput.value);
+  if(!p) return alert("Inserisci peso valido");
+
+  if(!data.peso[currentUser]) data.peso[currentUser] = [];
+  data.peso[currentUser].push({date: new Date().toLocaleDateString(), peso: p});
+  save();
+  loadChart();
 }
 
+let chart;
+
+function loadChart(){
+  let arr = data.peso[currentUser] || [];
+  let ctx = document.getElementById("pesoChart");
+
+  if(chart) chart.destroy();
+
+  chart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: arr.map(e=>e.date),
+      datasets: [{
+        label: "Peso (kg)",
+        data: arr.map(e=>e.peso)
+      }]
+    }
+  });
+}
+
+// -------- PDF DIETA --------
+function generaPDF(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  doc.text("Piano Alimentare Personalizzato", 10, 10);
+  doc.text("Cliente: " + currentUser, 10, 20);
+  doc.text("Obiettivo: " + goal.value, 10, 30);
+  doc.text("Intolleranze: " + intolleranze.value, 10, 40);
+
+  doc.text("Linee guida generali:", 10, 60);
+  doc.text("- Proteine magre\n- Verdure abbondanti\n- Acqua 2L/giorno\n- Cereali integrali", 10, 70);
+
+  doc.save("dieta_" + currentUser + ".pdf");
+}
+
+// -------- MINI AI LOCAL --------
 const faq = {
-  "quante calorie": "Dipende dal tuo metabolismo e dal piano fornito.",
-  "come dimagrire": "Calorie controllate, proteine adeguate, movimento costante.",
-  "come aumentare massa": "Surplus calorico, allenamento forza, proteine adeguate."
+  "come dimagrire":"Riduci carboidrati raffinati, aumenta proteine, fai camminate quotidiane.",
+  "come aumentare massa":"+300 kcal, proteine alte, pesi 3 volte settimana.",
+  "quanta acqua bere":"Circa 30ml/kg al giorno.",
+  "quante proteine":"1.6–2.2g/kg di peso.",
 };
-function sendMsg(){
-  const box = document.getElementById('chat');
-  const msg = document.getElementById('msg').value.toLowerCase();
-  if(!msg) return;
-  box.innerHTML += "<div><b>Tu:</b> "+msg+"</div>";
-  let reply = "Non ho capito, prova a riformulare.";
-  for(const q in faq) if(msg.includes(q)) reply = faq[q];
-  box.innerHTML += "<div><b>AI:</b> "+reply+"</div>";
-  box.scrollTop = box.scrollHeight;
-  document.getElementById('msg').value="";
+
+function askBot(){
+  let q = question.value.toLowerCase();
+  let ans = faq[q] || "Consiglio generale: dieta equilibrata, proteine adeguate, movimento giornaliero.";
+  chatBox.innerHTML += "<div><b>Tu:</b> "+question.value+"</div>";
+  chatBox.innerHTML += "<div><b>AI:</b> "+ans+"</div>";
+  question.value="";
 }
 </script>
 </body>

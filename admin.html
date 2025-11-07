@@ -1,65 +1,48 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>CoachPro — Admin</title>
-  <link rel="stylesheet" href="styles.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard</title>
+<link rel="stylesheet" href="styles.css">
+<script type="module" src="api.js"></script>
+<script type="module" src="main.js"></script>
 </head>
-<body>
-  <div class="wrap">
-    <header class="header">
-      <div>
-        <h2>CoachPro — Admin</h2>
-        <div class="small">Crea e assegna consigli/ricette ai clienti</div>
-      </div>
-      <div class="controls">
-        <button id="adminThemeToggle" class="btn-ghost">🌗</button>
-        <div id="adminAuth" class="auth-wrap">
-          <button id="adminLogin" class="btn">Login</button>
-          <button id="adminLogout" class="btn-ghost" style="display:none">Logout</button>
-        </div>
-      </div>
-    </header>
+<body class="theme-light">
 
-    <main class="grid-admin">
-      <section class="card">
-        <h3>Nuovo elemento</h3>
-        <form id="createForm">
-          <label>Tipo</label>
-          <select id="kind">
-            <option value="advices">Consiglio</option>
-            <option value="recipes">Ricetta</option>
-          </select>
+<header>
+  <h1 data-i18n="admin_title">Admin Dashboard</h1>
+  <div class="controls">
+    <button id="toggle-theme" data-i18n="toggle_theme">Tema</button>
+    <select id="lang-select">
+      <option value="it">IT</option>
+      <option value="en">EN</option>
+    </select>
+  </div>
+</header>
 
-          <label>Titolo</label>
-          <input id="title" placeholder="Titolo">
-
-          <label>Testo</label>
-          <textarea id="text" rows="6"></textarea>
-
-          <label>Assegna a (cliente)</label>
-          <select id="clientSelect"><option value="all">Tutti</option></select>
-
-          <div style="margin-top:10px;display:flex;gap:8px;">
-            <button id="saveDraft" class="btn">Salva bozza</button>
-            <button id="generateAI" type="button" class="btn-ghost">Genera con AI</button>
-          </div>
-        </form>
-      </section>
-
-      <aside class="card">
-        <h3>Clienti</h3>
-        <div id="clientsList" class="list">Caricamento...</div>
-        <hr>
-        <h3>Bozze / Pubblicati</h3>
-        <label class="small">Filtra per cliente</label>
-        <select id="filterClient"><option value="all">Tutti</option></select>
-        <div id="draftsList" class="list">Caricamento...</div>
-      </aside>
-    </main>
+<main class="admin-panel">
+  <div class="card">
+    <h2 data-i18n="select_client">Seleziona Cliente</h2>
+    <select id="client-select"></select>
   </div>
 
-  <script type="module" src="script.js"></script>
+  <div class="card">
+    <h2 data-i18n="advices_drafts">Bozze Consigli</h2>
+    <ul id="advices-admin-list"></ul>
+  </div>
+
+  <div class="card">
+    <h2 data-i18n="recipes_drafts">Bozze Ricette</h2>
+    <ul id="recipes-admin-list"></ul>
+  </div>
+
+  <div class="card">
+    <h2 data-i18n="upload_photo">Upload Foto Cliente</h2>
+    <input type="file" id="photo-upload">
+    <button id="upload-btn" data-i18n="upload">Carica</button>
+  </div>
+</main>
+
 </body>
 </html>

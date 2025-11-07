@@ -1,71 +1,87 @@
-import { fetchWeights, fetchPhotos, fetchAdvices, fetchRecipes } from './api.js';
-import Chart from 'chart.js/auto';
+import { fetchAdvices, fetchRecipes, fetchWeights, fetchPhotos } from './api.js';
 
-// Day/Night toggle
-document.getElementById('themeToggle').addEventListener('click', () => {
-  const current = document.documentElement.getAttribute('data-theme');
-  document.documentElement.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+// --- INIZIALIZZAZIONE ---
+const weightChartEl = document.getElementById('weightChart').getContext('2d');
+let photos = []; // Array foto per overlay
+let weightChart;
+
+// Toggle day/night
+const themeBtn = document.getElementById('themeToggle');
+themeBtn.addEventListener('click', () => document.body.classList.toggle('dark'));
+
+// Toggle lingua EN/IT
+const langBtn = document.getElementById('langToggle');
+langBtn.addEventListener('click', () => {
+    document.documentElement.lang = document.documentElement.lang === 'it' ? 'en' : 'it';
+    // aggiorna testo con i data-i18n
 });
 
-// Lingua toggle
-let lang = 'it';
-document.getElementById('langToggle').addEventListener('click', () => {
-  lang = lang === 'it' ? 'en' : 'it';
-  updateTranslations();
-});
+// --- CARICAMENTO DATI ---
+async function initDashboard(){
+    const advices = await fetchAdvices();
+    const recipes = await fetchRecipes();
+    const weights = await fetchWeights();
+    photos = await fetchPhotos();
 
-const i18n = {
-  en: { dashboard:"Dashboard", "weight-trend":"Weight Trend", "progress-photos":"Progress Photos", advices:"Advice", recipes:"Recipes", theme:"Theme" },
-  it: { dashboard:"Dashboard", "weight-trend":"Andamento Peso", "progress-photos":"Progressi Foto", advices:"Consigli Alimentari", recipes:"Ricette", theme:"Tema" }
-};
+    document.getElementById('advicesList').innerHTML = advices.map(a => `<p>${a.text}</p>`).join('');
+    document.getElementById('recipesList').innerHTML = recipes.map(r => `<p>${r.text}</p>`).join('');
 
-function updateTranslations() {
-  document.querySelectorAll('[data-i18n]').forEach(el=>{
-    el.textContent = i18n[lang][el.dataset.i18n] || el.textContent;
-  });
+    // Grafico
+    weightChart = new Chart(weightChartEl, {
+        type:'line',
+        data:{
+            labels: weights.map(w=>w.date),
+            datasets:[{
+                label:'Peso',
+                data: weights.map(w=>w.value),
+                borderColor:'blue',
+                fill:false,
+                tension:0.3,
+                pointRadius:6
+            }]
+        },
+        options:{ responsive:true, plugins:{ legend:{ display:true } } }
+    });
+}
+initDashboard();
+
+// --- MODAL FOTO INTERATTIVO ---
+let isDragging = false, startX, startY, currentX=0, currentY=0, scale=1;
+const photoModal = document.getElementById("photoModal");
+const modalPhoto = document.getElementById("modalPhoto");
+const modalInner = document.querySelector(".modal-inner");
+const closeBtn = document.querySelector(".closeBtn");
+
+function openPhotoModal(photoKey){
+    modalPhoto.src = `https://gino.personaltrainergustavo1.workers.dev/photo/${photoKey}`;
+    scale=1; currentX=0; currentY=0;
+    modalPhoto.style.transform=`translate(0px,0px) scale(1)`;
+    photoModal.style.display='flex';
 }
 
-// Modal foto
-const modal = document.getElementById("photoModal");
-const modalImg = document.getElementById("modalImg");
-const captionText = document.getElementById("caption");
+// Eventi swipe/drag
+modalPhoto.addEventListener("mousedown", e=>{ isDragging=true; startX=e.clientX-currentX; startY=e.clientY-currentY; modalPhoto.style.cursor="grabbing"; });
+modalPhoto.addEventListener("mousemove", e=>{ if(!isDragging)return; currentX=e.clientX-startX; currentY=e.clientY-startY; modalPhoto.style.transform=`translate(${currentX}px,${currentY}px) scale(${scale})`; });
+modalPhoto.addEventListener("mouseup", ()=>{ isDragging=false; modalPhoto.style.cursor="grab"; });
+modalPhoto.addEventListener("mouseleave", ()=>{ isDragging=false; modalPhoto.style.cursor="grab"; });
 
-document.addEventListener('click', e=>{
-  if(e.target.closest('.photo-gallery img')){
-    const img = e.target;
-    modal.style.display = "block";
-    modalImg.src = img.src;
-    captionText.textContent = img.alt;
-  }
+// Zoom mouse
+modalPhoto.addEventListener("wheel", e=>{ e.preventDefault(); scale+=e.deltaY*-0.001; scale=Math.min(Math.max(0.5,scale),3); modalPhoto.style.transform=`translate(${currentX}px,${currentY}px) scale(${scale})`; });
+
+// Touch events
+modalPhoto.addEventListener("touchstart", e=>{ if(e.touches.length===1){ isDragging=true; startX=e.touches[0].clientX-currentX; startY=e.touches[0].clientY-currentY; }});
+modalPhoto.addEventListener("touchmove", e=>{ if(!isDragging)return; currentX=e.touches[0].clientX-startX; currentY=e.touches[0].clientY-startY; modalPhoto.style.transform=`translate(${currentX}px,${currentY}px) scale(${scale})`; });
+modalPhoto.addEventListener("touchend", ()=>{ isDragging=false; });
+
+// Chiudi modal
+closeBtn.addEventListener("click", ()=>{ photoModal.style.display='none'; });
+photoModal.addEventListener("click", e=>{ if(e.target===photoModal)photoModal.style.display='none'; });
+
+// Overlay foto cliccando il grafico
+weightChartEl.canvas.addEventListener("click", e=>{
+    const points = weightChart.getElementsAtEventForMode(e,'nearest',{intersect:true},true);
+    if(points.length){
+        const idx = points[0].index;
+        if(photos[idx]) openPhotoModal(photos[idx].key);
+    }
 });
-document.querySelector(".close").onclick = ()=> modal.style.display="none";
-
-// Grafico peso
-const ctx = document.getElementById('weightChart').getContext('2d');
-const weightChart = new Chart(ctx, { type:'line', data:{labels:[], datasets:[{label:'Peso', data:[], borderColor:'#5c6bc0', fill:false}]}, options:{responsive:true} });
-
-// Load dashboard
-async function loadDashboard(){
-  const weights = await fetchWeights();
-  weightChart.data.labels = weights.map(w=>w.date);
-  weightChart.data.datasets[0].data = weights.map(w=>w.value);
-  weightChart.update();
-
-  const photos = await fetchPhotos();
-  const gallery = document.querySelector('.photo-gallery');
-  gallery.innerHTML = '';
-  photos.forEach(p=>{
-    const img = document.createElement('img'); img.src=p.url; img.alt=p.date;
-    gallery.appendChild(img);
-  });
-
-  const advices = await fetchAdvices();
-  const advList = document.querySelector('.advices-list');
-  advList.innerHTML = advices.map(a=>`<p>${a.text}</p>`).join('');
-
-  const recipes = await fetchRecipes();
-  const recList = document.querySelector('.recipes-list');
-  recList.innerHTML = recipes.map(r=>`<p>${r.text}</p>`).join('');
-}
-
-loadDashboard();

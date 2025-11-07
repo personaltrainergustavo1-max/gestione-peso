@@ -1,137 +1,71 @@
-import { fetchClientData, fetchAdminData, uploadPhoto } from './api.js';
-import Chart from 'https://cdn.jsdelivr.net/npm/chart.js';
-
-const themeBtn = document.getElementById('toggle-theme');
-const langSelect = document.getElementById('lang-select');
+import { fetchWeights, fetchPhotos, fetchAdvices, fetchRecipes } from './api.js';
+import Chart from 'chart.js/auto';
 
 // Day/Night toggle
-themeBtn.addEventListener('click', () => {
-  document.body.classList.toggle('theme-dark');
-  document.body.classList.toggle('theme-light');
-  localStorage.setItem('theme', document.body.className);
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const current = document.documentElement.getAttribute('data-theme');
+  document.documentElement.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
 });
 
-if(localStorage.getItem('theme')){
-  document.body.className = localStorage.getItem('theme');
+// Lingua toggle
+let lang = 'it';
+document.getElementById('langToggle').addEventListener('click', () => {
+  lang = lang === 'it' ? 'en' : 'it';
+  updateTranslations();
+});
+
+const i18n = {
+  en: { dashboard:"Dashboard", "weight-trend":"Weight Trend", "progress-photos":"Progress Photos", advices:"Advice", recipes:"Recipes", theme:"Theme" },
+  it: { dashboard:"Dashboard", "weight-trend":"Andamento Peso", "progress-photos":"Progressi Foto", advices:"Consigli Alimentari", recipes:"Ricette", theme:"Tema" }
+};
+
+function updateTranslations() {
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    el.textContent = i18n[lang][el.dataset.i18n] || el.textContent;
+  });
 }
 
-// Language toggle
-langSelect.addEventListener('change', (e) => {
-  loadLang(e.target.value);
-});
-function loadLang(lang){
-  fetch(`lang_${lang}.json`).then(res=>res.json()).then(dict=>{
-    document.querySelectorAll('[data-i18n]').forEach(el=>{
-      const key = el.getAttribute('data-i18n');
-      if(dict[key]) el.textContent = dict[key];
-    });
-  });
-}
-loadLang(langSelect.value);
+// Modal foto
+const modal = document.getElementById("photoModal");
+const modalImg = document.getElementById("modalImg");
+const captionText = document.getElementById("caption");
 
-// Cliente: grafico peso
-const ctx = document.getElementById('weight-chart');
-let weightChart;
-fetchClientData().then(data=>{
-  const labels = data.map(d=>d.date);
-  const values = data.map(d=>d.weight);
-  weightChart = new Chart(ctx, {
-    type:'line',
-    data:{
-      labels,
-      datasets:[{
-        label:'Peso',
-        data:values,
-        borderColor:'#2196f3',
-        backgroundColor:'rgba(33,150,243,0.2)',
-        tension:0.4,
-      }]
-    },
-    options:{
-      responsive:true,
-      plugins:{ legend:{ display:false } }
-    }
-  });
+document.addEventListener('click', e=>{
+  if(e.target.closest('.photo-gallery img')){
+    const img = e.target;
+    modal.style.display = "block";
+    modalImg.src = img.src;
+    captionText.textContent = img.alt;
+  }
 });
+document.querySelector(".close").onclick = ()=> modal.style.display="none";
 
-// Foto overlay
-const photosContainer = document.getElementById('photos-container');
-fetchClientData().then(data=>{
-  data.forEach(d=>{
-    if(d.photo){
-      const img = document.createElement('img');
-      img.src = d.photo;
-      img.className = 'photo-thumb';
-      img.addEventListener('click', ()=>showModal(d.photo));
-      photosContainer.appendChild(img);
-    }
+// Grafico peso
+const ctx = document.getElementById('weightChart').getContext('2d');
+const weightChart = new Chart(ctx, { type:'line', data:{labels:[], datasets:[{label:'Peso', data:[], borderColor:'#5c6bc0', fill:false}]}, options:{responsive:true} });
+
+// Load dashboard
+async function loadDashboard(){
+  const weights = await fetchWeights();
+  weightChart.data.labels = weights.map(w=>w.date);
+  weightChart.data.datasets[0].data = weights.map(w=>w.value);
+  weightChart.update();
+
+  const photos = await fetchPhotos();
+  const gallery = document.querySelector('.photo-gallery');
+  gallery.innerHTML = '';
+  photos.forEach(p=>{
+    const img = document.createElement('img'); img.src=p.url; img.alt=p.date;
+    gallery.appendChild(img);
   });
-});
 
-// Modal
-const modal = document.getElementById('modal');
-const modalBody = document.getElementById('modal-body');
-const closeModal = document.querySelector('.modal .close');
-closeModal.addEventListener('click', ()=>modal.style.display='none');
-function showModal(content){
-  modalBody.innerHTML = `<img src="${content}" style="width:100%">`;
-  modal.style.display='flex';
+  const advices = await fetchAdvices();
+  const advList = document.querySelector('.advices-list');
+  advList.innerHTML = advices.map(a=>`<p>${a.text}</p>`).join('');
+
+  const recipes = await fetchRecipes();
+  const recList = document.querySelector('.recipes-list');
+  recList.innerHTML = recipes.map(r=>`<p>${r.text}</p>`).join('');
 }
 
-// Lista consigli/ricette
-const advicesList = document.getElementById('advices-list');
-const recipesList = document.getElementById('recipes-list');
-fetchClientData().then(data=>{
-  data.advices.forEach(a=>{
-    const li = document.createElement('li');
-    li.textContent = a.title;
-    advicesList.appendChild(li);
-  });
-  data.recipes.forEach(r=>{
-    const li = document.createElement('li');
-    li.textContent = r.title;
-    recipesList.appendChild(li);
-  });
-});
-
-// Admin
-const clientSelect = document.getElementById('client-select');
-const advicesAdminList = document.getElementById('advices-admin-list');
-const recipesAdminList = document.getElementById('recipes-admin-list');
-const photoUpload = document.getElementById('photo-upload');
-const uploadBtn = document.getElementById('upload-btn');
-
-fetchAdminData().then(data=>{
-  data.clients.forEach(c=>{
-    const opt = document.createElement('option');
-    opt.value = c.uid;
-    opt.textContent = c.name;
-    clientSelect.appendChild(opt);
-  });
-
-  data.advices.forEach(a=>{
-    const li = document.createElement('li');
-    li.textContent = a.title;
-    const btn = document.createElement('button');
-    btn.textContent='✔';
-    btn.addEventListener('click', ()=> approveAdvice(a.id,true));
-    li.appendChild(btn);
-    advicesAdminList.appendChild(li);
-  });
-
-  data.recipes.forEach(r=>{
-    const li = document.createElement('li');
-    li.textContent = r.title;
-    const btn = document.createElement('button');
-    btn.textContent='✔';
-    btn.addEventListener('click', ()=> approveRecipe(r.id,true));
-    li.appendChild(btn);
-    recipesAdminList.appendChild(li);
-  });
-});
-
-uploadBtn.addEventListener('click', ()=>{
-  const file = photoUpload.files[0];
-  const clientId = clientSelect.value;
-  if(file && clientId) uploadPhoto(clientId,file);
-});
+loadDashboard();

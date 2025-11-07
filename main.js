@@ -1,112 +1,149 @@
-import { fetchAdvices, fetchRecipes, fetchWeights, fetchPhotos } from './api.js';
+import { getUserWeights, getUserPhotos } from './api.js'; // funzioni fetch a Firebase/Worker
 
-const weightChartEl = document.getElementById('weightChart').getContext('2d');
-let photos = []; // Array foto per overlay
-let weightChart;
+// ---------- ELEMENTI ----------
+const themeToggle = document.getElementById('themeToggle');
+const langToggle = document.getElementById('langToggle');
+const chartContainer = document.getElementById('weightChart');
+const photoModal = document.getElementById('photoModal');
+const modalImg = document.querySelector('.modal-inner img');
+const closeBtn = document.querySelector('.closeBtn');
 
-// Tooltip personalizzato per mostrare foto
-const photoTooltip = document.createElement('div');
-photoTooltip.style.position = 'absolute';
-photoTooltip.style.pointerEvents = 'none';
-photoTooltip.style.background = 'rgba(0,0,0,0.7)';
-photoTooltip.style.borderRadius = '8px';
-photoTooltip.style.padding = '5px';
-photoTooltip.style.display = 'none';
-photoTooltip.style.zIndex = 1000;
-document.body.appendChild(photoTooltip);
+// ---------- STATO ----------
+let currentLang = 'it';
+let currentTheme = 'day';
+let chartInstance;
+let userWeights = [];
+let userPhotos = [];
 
-const themeBtn = document.getElementById('themeToggle');
-themeBtn.addEventListener('click', () => document.body.classList.toggle('dark'));
+// ---------- FUNZIONI ----------
 
-const langBtn = document.getElementById('langToggle');
-langBtn.addEventListener('click', () => {
-    document.documentElement.lang = document.documentElement.lang === 'it' ? 'en' : 'it';
+// Day/Night Toggle
+themeToggle.addEventListener('click', () => {
+    document.body.classList.toggle('dark');
+    currentTheme = document.body.classList.contains('dark') ? 'night' : 'day';
 });
 
-// --- CARICAMENTO DATI ---
-async function initDashboard(){
-    const advices = await fetchAdvices();
-    const recipes = await fetchRecipes();
-    const weights = await fetchWeights();
-    photos = await fetchPhotos();
+// Lingua Toggle
+langToggle.addEventListener('click', () => {
+    currentLang = currentLang === 'it' ? 'en' : 'it';
+    translatePage(currentLang);
+});
 
-    document.getElementById('advicesList').innerHTML = advices.map(a => `<p>${a.text}</p>`).join('');
-    document.getElementById('recipesList').innerHTML = recipes.map(r => `<p>${r.text}</p>`).join('');
+// Traduzione semplice
+function translatePage(lang) {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        el.textContent = translations[lang][key] || key;
+    });
+}
 
-    weightChart = new Chart(weightChartEl, {
-        type:'line',
-        data:{
-            labels: weights.map(w=>w.date),
-            datasets:[{
-                label:'Peso',
-                data: weights.map(w=>w.value),
-                borderColor:'blue',
-                fill:false,
-                tension:0.3,
-                pointRadius:6,
-                pointHoverRadius:10
+// Tooltip Foto
+const tooltip = document.createElement('div');
+tooltip.className = 'tooltip-photo';
+document.body.appendChild(tooltip);
+
+function showTooltip(e, photoUrl) {
+    tooltip.style.left = e.pageX + 'px';
+    tooltip.style.top = e.pageY + 'px';
+    tooltip.style.backgroundImage = `url(${photoUrl})`;
+    tooltip.style.width = '100px';
+    tooltip.style.height = '100px';
+    tooltip.style.backgroundSize = 'cover';
+    tooltip.classList.add('show');
+}
+
+function hideTooltip() {
+    tooltip.classList.remove('show');
+}
+
+// Modal Foto
+function openModal(photoUrl) {
+    modalImg.src = photoUrl;
+    photoModal.classList.add('show');
+}
+function closeModal() {
+    photoModal.classList.remove('show');
+}
+closeBtn.addEventListener('click', closeModal);
+photoModal.addEventListener('click', e => {
+    if (e.target === photoModal) closeModal();
+});
+
+// ---------- GRAFICO PESO ----------
+async function renderChart(uid) {
+    userWeights = await getUserWeights(uid);
+    userPhotos = await getUserPhotos(uid); // array di {timestamp, url}
+
+    const labels = userWeights.map(w => w.date);
+    const data = userWeights.map(w => w.value);
+
+    const ctx = chartContainer.getContext('2d');
+    if (chartInstance) chartInstance.destroy();
+
+    chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: currentLang === 'it' ? 'Peso (kg)' : 'Weight (kg)',
+                data: data,
+                borderColor: '#0077cc',
+                backgroundColor: 'rgba(0,119,204,0.2)',
+                pointRadius: 6,
+                pointHoverRadius: 10
             }]
         },
-        options:{
-            responsive:true,
-            plugins:{
-                legend:{ display:true },
-                tooltip:{
-                    enabled:false,
+        options: {
+            responsive: true,
+            plugins: {
+                tooltip: {
+                    enabled: false,
                     external: context => {
-                        const tooltipModel = context.tooltip;
-                        if(tooltipModel.opacity === 0){ photoTooltip.style.display='none'; return; }
-                        const idx = tooltipModel.dataPoints[0].dataIndex;
-                        if(!photos[idx]) return;
-                        const pos = tooltipModel.caretX + tooltipModel.chart.canvas.offsetLeft;
-                        const posY = tooltipModel.caretY + tooltipModel.chart.canvas.offsetTop;
-                        photoTooltip.innerHTML = `<img src="https://gino.personaltrainergustavo1.workers.dev/photo/${photos[idx].key}" style="width:80px;height:80px;border-radius:8px;">`;
-                        photoTooltip.style.left = `${pos + 10}px`;
-                        photoTooltip.style.top = `${posY - 40}px`;
-                        photoTooltip.style.display='block';
+                        const point = context.tooltip.dataPoints?.[0];
+                        if (!point) { hideTooltip(); return; }
+                        const photo = userPhotos.find(p => p.timestamp === point.label);
+                        if (photo) {
+                            showTooltip(context.tooltip.caretX ? {pageX: context.tooltip.caretX, pageY: context.tooltip.caretY} : {pageX:0,pageY:0}, photo.url);
+                        } else {
+                            hideTooltip();
+                        }
                     }
                 }
             }
         }
     });
 }
-initDashboard();
 
-// --- MODAL FOTO INTERATTIVO ---
-let isDragging = false, startX, startY, currentX=0, currentY=0, scale=1;
-const photoModal = document.getElementById("photoModal");
-const modalPhoto = document.getElementById("modalPhoto");
-const modalInner = document.querySelector(".modal-inner");
-const closeBtn = document.querySelector(".closeBtn");
-
-function openPhotoModal(photoKey){
-    modalPhoto.src = `https://gino.personaltrainergustavo1.workers.dev/photo/${photoKey}`;
-    scale=1; currentX=0; currentY=0;
-    modalPhoto.style.transform=`translate(0px,0px) scale(1)`;
-    photoModal.style.display='flex';
-}
-
-// Drag/Swipe
-modalPhoto.addEventListener("mousedown", e=>{ isDragging=true; startX=e.clientX-currentX; startY=e.clientY-currentY; modalPhoto.style.cursor="grabbing"; });
-modalPhoto.addEventListener("mousemove", e=>{ if(!isDragging)return; currentX=e.clientX-startX; currentY=e.clientY-startY; modalPhoto.style.transform=`translate(${currentX}px,${currentY}px) scale(${scale})`; });
-modalPhoto.addEventListener("mouseup", ()=>{ isDragging=false; modalPhoto.style.cursor="grab"; });
-modalPhoto.addEventListener("mouseleave", ()=>{ isDragging=false; modalPhoto.style.cursor="grab"; });
-modalPhoto.addEventListener("wheel", e=>{ e.preventDefault(); scale+=e.deltaY*-0.001; scale=Math.min(Math.max(0.5,scale),3); modalPhoto.style.transform=`translate(${currentX}px,${currentY}px) scale(${scale})`; });
-
-// Touch
-modalPhoto.addEventListener("touchstart", e=>{ if(e.touches.length===1){ isDragging=true; startX=e.touches[0].clientX-currentX; startY=e.touches[0].clientY-currentY; }});
-modalPhoto.addEventListener("touchmove", e=>{ if(!isDragging)return; currentX=e.touches[0].clientX-startX; currentY=e.touches[0].clientY-startY; modalPhoto.style.transform=`translate(${currentX}px,${currentY}px) scale(${scale})`; });
-modalPhoto.addEventListener("touchend", ()=>{ isDragging=false; });
-
-// Chiudi modal
-closeBtn.addEventListener("click", ()=>{ photoModal.style.display='none'; });
-photoModal.addEventListener("click", e=>{ if(e.target===photoModal)photoModal.style.display='none'; });
-
-// Click grafico apre modal
-weightChartEl.canvas.addEventListener("click", e=>{
-    const points = weightChart.getElementsAtEventForMode(e,'nearest',{intersect:true},true);
-    if(points.length){
-        const idx = points[0].index;
-        if(photos[idx]) openPhotoModal(photos[idx].key);
+// ---------- TRADUZIONI ----------
+const translations = {
+    it: {
+        'weight-tracking':'Andamento Peso',
+        'theme':'Tema',
+        'clients':'Clienti',
+        'advices':'Consigli Alimentari',
+        'recipes':'Ricette',
+        'upload-photo':'Upload Foto',
+        'add-advice':'Aggiungi Consiglio',
+        'add-recipe':'Aggiungi Ricetta',
+        'upload':'Carica'
+    },
+    en: {
+        'weight-tracking':'Weight Progress',
+        'theme':'Theme',
+        'clients':'Clients',
+        'advices':'Food Advices',
+        'recipes':'Recipes',
+        'upload-photo':'Upload Photo',
+        'add-advice':'Add Advice',
+        'add-recipe':'Add Recipe',
+        'upload':'Upload'
     }
+};
+
+// ---------- INIZIALIZZAZIONE ----------
+document.addEventListener('DOMContentLoaded', async () => {
+    translatePage(currentLang);
+    // esempio: uid utente loggato
+    const uid = 'test-user-uid';
+    await renderChart(uid);
 });

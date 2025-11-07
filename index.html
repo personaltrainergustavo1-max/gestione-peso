@@ -9,7 +9,7 @@
 </head>
 <body>
 <header>
-  <h1 data-i18n="dashboard">Dashboard</h1>
+  <h1 data-i18n="dashboard">Dashboard Cliente</h1>
   <div class="toggles">
     <button id="themeToggle" data-i18n="theme">Tema</button>
     <button id="langToggle">EN/IT</button>
@@ -18,31 +18,27 @@
 
 <main class="dashboard">
   <div class="card" data-type="weight">
-    <h3 data-i18n="weight-trend">Andamento Peso</h3>
+    <h3 data-i18n="weight-progress">Andamento Peso</h3>
     <canvas id="weightChart"></canvas>
-  </div>
-
-  <div class="card" data-type="photos">
-    <h3 data-i18n="progress-photos">Progressi Foto</h3>
-    <div class="photo-gallery"></div>
   </div>
 
   <div class="card" data-type="advices">
     <h3 data-i18n="advices">Consigli Alimentari</h3>
-    <div class="advices-list"></div>
+    <div id="advicesList"></div>
   </div>
 
   <div class="card" data-type="recipes">
     <h3 data-i18n="recipes">Ricette</h3>
-    <div class="recipes-list"></div>
+    <div id="recipesList"></div>
   </div>
 </main>
 
-<!-- Modal foto -->
+<!-- Modal Foto Interattivo -->
 <div id="photoModal" class="modal">
-  <span class="close">&times;</span>
-  <img class="modal-content" id="modalImg">
-  <div id="caption"></div>
+  <span class="closeBtn">&times;</span>
+  <div class="modal-inner">
+    <img class="modal-content" id="modalPhoto" draggable="false">
+  </div>
 </div>
 
 <script type="module" src="api.js"></script>

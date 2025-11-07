@@ -1,44 +1,45 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Admin Panel</title>
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
+<body class="light">
 <header>
   <h1 data-i18n="admin-panel">Pannello Admin</h1>
   <div class="toggles">
     <button id="themeToggle" data-i18n="theme">Tema</button>
     <button id="langToggle">EN/IT</button>
-    <button id="logoutBtn" data-i18n="logout">Logout</button>
+    <button id="loginBtn" class="primary">Accedi con Google</button>
+    <button id="logoutBtn" style="display:none;">Logout</button>
   </div>
 </header>
 
 <main class="admin-dashboard">
-  <div class="card" data-type="clients">
-    <h3 data-i18n="clients">Clienti</h3>
-    <select id="clientSelect"></select>
+  <div class="card">
+    <h3>Clienti</h3>
+    <select id="clientSelect" style="width:100%;padding:.5rem;border-radius:8px"></select>
   </div>
 
-  <div class="card" data-type="advices">
-    <h3 data-i18n="advices">Consigli Alimentari</h3>
+  <div class="card">
+    <h3>Consigli (seleziona cliente)</h3>
     <div id="advicesAdminList"></div>
-    <button id="addAdviceBtn" data-i18n="add-advice">Aggiungi Consiglio</button>
+    <div style="margin-top:.6rem"><button id="addAdviceBtn" class="primary">Aggiungi Consiglio</button></div>
   </div>
 
-  <div class="card" data-type="recipes">
-    <h3 data-i18n="recipes">Ricette</h3>
+  <div class="card">
+    <h3>Ricette (seleziona cliente)</h3>
     <div id="recipesAdminList"></div>
-    <button id="addRecipeBtn" data-i18n="add-recipe">Aggiungi Ricetta</button>
+    <div style="margin-top:.6rem"><button id="addRecipeBtn" class="primary">Aggiungi Ricetta</button></div>
   </div>
 
-  <div class="card" data-type="upload">
-    <h3 data-i18n="upload-photo">Upload Foto Cliente</h3>
-    <input type="file" id="photoUpload" accept="image/*">
-    <button id="uploadPhotoBtn" data-i18n="upload">Carica</button>
+  <div class="card">
+    <h3>Upload Foto</h3>
+    <input id="photoUpload" type="file" accept="image/*">
+    <div style="margin-top:.6rem"><button id="uploadPhotoBtn" class="primary">Carica Foto</button></div>
   </div>
 </main>
 

@@ -8,47 +8,43 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-<header>
-    <h1 data-i18n="weight-tracking">Andamento Peso</h1>
-    <div class="toggles">
-        <button id="themeToggle" data-i18n="theme">Tema</button>
-        <button id="langToggle">EN/IT</button>
-    </div>
+<header class="header">
+  <h1 data-i18n="dashboard">Dashboard Cliente</h1>
+  <div class="toggles">
+    <button id="themeToggle" data-i18n="theme">Tema</button>
+    <button id="langToggle">EN/IT</button>
+  </div>
 </header>
 
 <main class="dashboard">
-    <!-- Card Peso -->
-    <div class="card">
-        <h2 data-i18n="weight-tracking">Andamento Peso</h2>
-        <canvas id="weightChart"></canvas>
-    </div>
+  <div class="card" id="weightCard">
+    <h2 data-i18n="weight-trend">Andamento Peso</h2>
+    <canvas id="weightChart"></canvas>
+  </div>
 
-    <!-- Card Consigli Alimentari -->
-    <div class="card">
-        <h2 data-i18n="advices">Consigli Alimentari</h2>
-        <div id="advicesList">
-            <!-- Lista consigli generata dinamicamente -->
-        </div>
-    </div>
+  <div class="card" id="advicesCard">
+    <h2 data-i18n="advices">Consigli Alimentari</h2>
+    <div id="advicesList"></div>
+  </div>
 
-    <!-- Card Ricette -->
-    <div class="card">
-        <h2 data-i18n="recipes">Ricette</h2>
-        <div id="recipesList">
-            <!-- Lista ricette generata dinamicamente -->
-        </div>
-    </div>
+  <div class="card" id="recipesCard">
+    <h2 data-i18n="recipes">Ricette</h2>
+    <div id="recipesList"></div>
+  </div>
+
+  <div class="card" id="photosCard">
+    <h2 data-i18n="photos">Foto Progressi</h2>
+    <div id="photosGrid"></div>
+  </div>
 </main>
 
-<!-- Modal foto overlay -->
+<!-- Modal foto -->
 <div id="photoModal" class="modal">
-    <span class="closeBtn">&times;</span>
-    <div class="modal-inner">
-        <img src="" alt="Foto progresso">
-    </div>
+  <span class="close">&times;</span>
+  <img class="modal-content" id="modalImg">
+  <div id="caption"></div>
 </div>
 
-<script type="module" src="api.js"></script>
 <script type="module" src="main.js"></script>
 </body>
 </html>

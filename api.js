@@ -1,5 +1,6 @@
 // api.js
 // Central API layer: Firebase v9 modular + Cloudflare Worker upload helper
+// Copy this file as-is into your repo.
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import {
@@ -7,8 +8,7 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   signOut,
-  onAuthStateChanged,
-  getIdToken
+  onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 import {
   getFirestore,
@@ -36,11 +36,12 @@ const firebaseConfig = {
   measurementId: "G-WGBB30D5FK"
 };
 
-// Your Cloudflare Worker base
+// Cloudflare Worker base (your worker)
 const WORKER_BASE = "https://gino.personaltrainergustavo1.workers.dev";
 
+// initialize
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+const auth = getAuth ? getAuth(app) : null; // guard for environments
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
@@ -57,14 +58,8 @@ export function onAuth(cb) {
 export function getCurrentUser() {
   return auth.currentUser || null;
 }
-export async function getCurrentUserToken() {
-  const u = getCurrentUser();
-  if (!u) return null;
-  return await u.getIdToken();
-}
 
 // ---------- Firestore helpers ----------
-
 export async function fetchClients() {
   const col = collection(db, "users");
   const q = query(col, orderBy("displayName"));
@@ -194,12 +189,41 @@ export async function savePhotoMeta(clientId, { key, publicUrl }) {
   return id;
 }
 
+// ---------- ensure user doc at first login ----------
+export async function ensureUserDoc(user) {
+  if (!user || !user.uid) return;
+  try {
+    const uref = doc(db, "users", user.uid);
+    const snap = await getDoc(uref);
+    if (!snap.exists()) {
+      await setDoc(uref, {
+        displayName: user.displayName || null,
+        email: user.email || null,
+        photoURL: user.photoURL || null,
+        createdAt: serverTimestamp(),
+        lastLogin: serverTimestamp()
+      }, { merge: true });
+      console.log("User doc created for", user.uid);
+    } else {
+      await setDoc(uref, {
+        lastLogin: serverTimestamp(),
+        displayName: user.displayName || snap.data().displayName || null,
+        email: user.email || snap.data().email || null
+      }, { merge: true });
+      console.log("User doc updated for", user.uid);
+    }
+  } catch (err) {
+    console.error("ensureUserDoc error:", err);
+    throw err;
+  }
+}
+
 // ---------- Worker upload (R2) ----------
 export async function uploadPhotoToWorker(clientId, file) {
   if (!clientId || !file) throw new Error("Missing clientId or file");
   const user = getCurrentUser();
   if (!user) throw new Error("Not authenticated");
-  const token = await getIdToken(user);
+  const token = await user.getIdToken();
   const url = `${WORKER_BASE}/upload?clientId=${encodeURIComponent(clientId)}`;
   const res = await fetch(url, {
     method: "PUT",
@@ -221,5 +245,5 @@ export function workerPhotoUrl(key) {
   return `${WORKER_BASE}/photo/${key}`;
 }
 
-// export auth/db if needed elsewhere
+// export low-level handles if needed
 export { auth, db };

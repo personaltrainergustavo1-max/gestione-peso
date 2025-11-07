@@ -1,41 +1,249 @@
-/* Reset e base */
+/* ------------------ RESET ------------------ */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 body {
-  margin:0; padding:0;
-  font-family: 'Arial', sans-serif;
-  background-color: #f0f2f5;
-  color:#333;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  background-color: var(--bg);
+  color: var(--text);
   transition: background-color 0.3s, color 0.3s;
 }
+
+/* ------------------ THEME VARIABLES ------------------ */
+:root {
+  --bg: #f9f9f9;
+  --card-bg: #ffffff;
+  --text: #111111;
+  --text-muted: #666666;
+  --primary: #4f46e5;
+  --danger: #dc2626;
+  --small-btn: 0.8rem;
+  --modal-bg: rgba(0,0,0,0.5);
+}
+
 body.dark {
-  background-color: #121212;
-  color: #f0f2f5;
+  --bg: #1e1e1e;
+  --card-bg: #2b2b2b;
+  --text: #f0f0f0;
+  --text-muted: #bbbbbb;
+  --primary: #6366f1;
+  --danger: #f87171;
+  --modal-bg: rgba(0,0,0,0.7);
 }
-.header {
-  display:flex; justify-content:space-between; align-items:center;
-  padding:1rem; background:#007bff; color:white;
+
+/* ------------------ HEADER ------------------ */
+header.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: var(--card-bg);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
-.toggles button { margin-left:0.5rem; padding:0.3rem 0.6rem; cursor:pointer; }
 
-/* Dashboard cards */
-.dashboard {
-  display:grid; grid-template-columns: repeat(auto-fit,minmax(300px,1fr));
-  gap:1rem; padding:1rem;
+header h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
 }
-.card { background:white; border-radius:10px; padding:1rem; box-shadow:0 4px 8px rgba(0,0,0,0.1); transition: transform 0.3s; }
-body.dark .card { background:#1e1e1e; box-shadow:0 4px 8px rgba(255,255,255,0.05); }
-.card:hover { transform: translateY(-5px); }
-.card h2 { margin-top:0; }
 
-/* Photos */
-#photosGrid { display:flex; flex-wrap:wrap; gap:0.5rem; }
-.photo-thumb { width:80px; height:80px; object-fit:cover; border-radius:5px; cursor:pointer; }
+header .toggles button {
+  margin-left: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.9rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+header .toggles button:hover {
+  transform: scale(1.05);
+}
+header .toggles button:focus {
+  outline: 2px solid var(--primary);
+}
 
-/* Modal */
-.modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color: rgba(0,0,0,0.9); }
-.modal-content { margin:auto; display:block; max-width:90%; max-height:90%; animation: zoom 0.3s; }
-.close { position:absolute; top:15px; right:35px; color:#fff; font-size:40px; font-weight:bold; cursor:pointer; }
-@keyframes zoom { from {transform:scale(0)} to {transform:scale(1)} }
+.admin-badge {
+  background: var(--primary);
+  color: #fff;
+  padding: 0.2rem 0.5rem;
+  border-radius: 5px;
+  margin-left: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
 
-/* Card items */
-.card-item { padding:0.5rem; margin:0.2rem 0; background:#e9ecef; border-radius:5px; }
-body.dark .card-item { background:#2c2c2c; }
+/* ------------------ MAIN CARDS ------------------ */
+main.admin-dashboard, main.client-dashboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  padding: 2rem;
+}
+
+.card {
+  background-color: var(--card-bg);
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  transition: transform 0.3s, box-shadow 0.3s;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+}
+
+/* ------------------ LISTA / ROW ------------------ */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.list-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.8rem;
+  background-color: var(--bg);
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+.list-row:hover {
+  background-color: rgba(0,0,0,0.05);
+}
+
+.list-left {
+  flex: 1;
+}
+.list-left strong {
+  display: block;
+  font-weight: 600;
+}
+.muted {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* ------------------ BUTTONS ------------------ */
+button.primary {
+  background-color: var(--primary);
+  color: #fff;
+  padding: 0.5rem 0.9rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s, transform 0.2s;
+}
+button.primary:hover {
+  background-color: #4338ca;
+  transform: scale(1.05);
+}
+
+button.danger {
+  background-color: var(--danger);
+  color: #fff;
+  padding: 0.4rem 0.7rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: var(--small-btn);
+  transition: transform 0.2s;
+}
+button.danger:hover {
+  transform: scale(1.05);
+}
+
+button.small {
+  font-size: var(--small-btn);
+  padding: 0.3rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* ------------------ MODALI ------------------ */
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  justify-content: center;
+  align-items: center;
+  background: var(--modal-bg);
+  z-index: 1000;
+  padding: 1rem;
+}
+.modal-content {
+  background-color: var(--card-bg);
+  padding: 1.5rem;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 500px;
+  position: relative;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  animation: fadeIn 0.3s ease-out;
+}
+.modal-content input, .modal-content textarea {
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 0.95rem;
+  width: 100%;
+}
+.modal-content textarea { resize: vertical; }
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+.closeBtn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: transparent;
+  font-size: 1.5rem;
+  border: none;
+  cursor: pointer;
+}
+
+/* ------------------ ANIMAZIONI ------------------ */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ------------------ INPUT FILE ------------------ */
+input[type="file"] {
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 0.3rem;
+}
+
+/* ------------------ RESPONSIVE ------------------ */
+@media (max-width: 768px){
+  main.admin-dashboard, main.client-dashboard {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ------------------ CARD IMG OVERLAY (per dashboard cliente) ------------------ */
+.card img {
+  width: 100%;
+  border-radius: 8px;
+  transition: transform 0.3s;
+}
+.card img:hover {
+  transform: scale(1.03);
+}

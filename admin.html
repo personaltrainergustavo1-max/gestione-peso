@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>CoachPro — Admin Console</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div class="brand"><div class="logo">CP</div><div><div class="title">CoachPro — Admin</div><div class="small">Manage advices & recipes</div></div></div>
+      <div>
+        <button id="btnLogin" class="btn">Login</button>
+        <button id="btnLogout" class="btn-ghost" style="display:none">Logout</button>
+      </div>
+    </div>
+
+    <div id="adminArea" style="display:none">
+      <div class="card admin-note">
+        <strong>Nota</strong>: l'AI genererà bozze; approva prima che i clienti possano vederle.
+      </div>
+
+      <div class="row">
+        <div class="col card">
+          <h4>Nuovo consiglio alimentare</h4>
+          <input id="advTitle" placeholder="Titolo" />
+          <input id="advCategory" placeholder="Categoria (colazione, pranzo...)" />
+          <textarea id="advDesc" rows="4" placeholder="Descrizione / testo"></textarea>
+          <input id="advTags" placeholder="tags separati da virgola (uova,proteine)" />
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button id="advGenerate" class="btn">Genera con AI</button>
+            <button id="advSave" class="btn-ghost">Salva bozza</button>
+          </div>
+        </div>
+
+        <div class="col card">
+          <h4>Genera ricette da alimento</h4>
+          <input id="recipeFood" placeholder="es. uova" />
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button id="recipeGenerate" class="btn">Genera 5 ricette</button>
+          </div>
+          <div id="recipeDrafts" style="margin-top:10px"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4>Bozze (advices & recipes)</h4>
+        <div id="draftsList"></div>
+      </div>
+    </div>
+
+    <div id="adminDenied" class="card" style="display:none">Accesso riservato all'admin.</div>
+  </div>
+
+  <script type="module">
+    import * as S from "./script.js";
+
+    const btnLogin = document.getElementById("btnLogin"), btnLogout = document.getElementById("btnLogout");
+    const adminArea = document.getElementById("adminArea"), adminDenied = document.getElementById("adminDenied");
+    const advGenerate = document.getElementById("advGenerate"), advSave = document.getElementById("advSave");
+    const advTitle = document.getElementById("advTitle"), advCategory = document.getElementById("advCategory"), advDesc = document.getElementById("advDesc"), advTags = document.getElementById("advTags");
+    const recipeFood = document.getElementById("recipeFood"), recipeGenerate = document.getElementById("recipeGenerate"), recipeDrafts = document.getElementById("recipeDrafts");
+    const draftsList = document.getElementById("draftsList");
+
+    btnLogin.onclick = async ()=> { try{ await S.loginWithGoogle(); }catch(e){ alert(e.message); } };
+    btnLogout.onclick = async ()=> { await S.logout(); };
+
+    S.auth.onAuthStateChanged(async user => {
+      if(!user){ adminArea.style.display="none"; adminDenied.style.display="none"; btnLogin.style.display="inline-block"; btnLogout.style.display="none"; return; }
+      btnLogin.style.display="none"; btnLogout.style.display="inline-block";
+      // check admin email
+      if(user.email !== S.CONFIG.adminEmail){ adminDenied.style.display="block"; adminArea.style.display="none"; return; }
+      adminDenied.style.display="none"; adminArea.style.display="block";
+      await loadDrafts();
+    });
+
+    advGenerate.onclick = async ()=>{
+      const prompt = `Genera un consiglio alimentare professionale per ${advCategory.value || 'generico'}: titolo breve e una descrizione pratica. Metti punti elenco.`;
+      try{
+        advGenerate.disabled=true;
+        const txt = await S.aiGenerate(prompt);
+        advDesc.value = txt;
+      }catch(e){ alert("AI error: "+e.message); } finally { advGenerate.disabled=false; }
+    };
+
+    advSave.onclick = async ()=>{
+      const tags = advTags.value.split(",").map(s=>s.trim()).filter(Boolean);
+      await S.createAdvice({ category: advCategory.value||"generico", title: advTitle.value||"Consiglio", description: advDesc.value||"", tags, author: S.auth.currentUser.email });
+      advTitle.value = advCategory.value = advDesc.value = advTags.value = "";
+      await loadDrafts();
+      alert("Bozza salvata");
+    };
+
+    recipeGenerate.onclick = async ()=>{
+      const food = recipeFood.value.trim();
+      if(!food) return alert("Inserisci un alimento");
+      try{
+        recipeGenerate.disabled=true;
+        const prompt = `Crea 5 ricette facili e salutari usando "${food}". Ogni ricetta: titolo, ingredienti (breve) e istruzioni in 2-3 righe. Sii pratico.`;
+        const out = await S.aiGenerate(prompt);
+        // save as draft
+        await S.createRecipeDraft({ food, generatedText: out, author: S.auth.currentUser.email });
+        recipeFood.value = "";
+        await loadDrafts();
+        alert("Bozza ricette generata");
+      }catch(e){ alert("AI error: "+e.message); } finally { recipeGenerate.disabled=false; }
+    };
+
+    async function loadDrafts(){
+      const advs = await S.getDrafts("advices");
+      const recs = await S.getDrafts("recipes");
+      draftsList.innerHTML = "<h4>Consigli (bozze)</h4>" + (advs.map(a=>`<div class="list-item"><div><strong>${a.title}</strong><div class="small">${a.category}</div></div><div><button data-id="${a.id}" data-kind="advices" class="approveBtn btn">Approva</button></div></div>`).join("") || "<div class='small'>Nessuna bozza</div>");
+      draftsList.innerHTML += "<h4 style='margin-top:12px'>Ricette (bozze)</h4>" + (recs.map(r=>`<div class="list-item"><div><strong>${r.food}</strong><div class="small">${(r.generatedText||'').slice(0,200)}...</div></div><div><button data-id="${r.id}" data-kind=\"recipes\" class="approveBtn btn\">Approva</button></div></div>`).join("") || "<div class='small'>Nessuna bozza</div>");
+      document.querySelectorAll(".approveBtn").forEach(b=>b.onclick = async (e)=>{
+        const id = e.target.dataset.id, kind = e.target.dataset.kind;
+        await S.approveDoc(kind, id);
+        await loadDrafts();
+        alert("Approvato");
+      });
+    }
+  </script>
+</body>
+</html>

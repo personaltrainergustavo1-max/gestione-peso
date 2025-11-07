@@ -4,554 +4,139 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>CoachPro • Dashboard</title>
-
-  <!-- Chart.js -->
+  <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
-
-  <style>
-    /* =========== THEME & PALETTE =========== */
-    :root{
-      --bg:#f5f7fb; --card:#ffffff; --text:#0b2540; --muted:#5b6b77; --accent:#0ea5ff;
-      --accent-2:#14b8ff; --success:#16a34a; --danger:#ef4444; --radius:14px;
-      --glass: rgba(255,255,255,0.6); --card-shadow: 0 8px 24px rgba(10,20,30,0.06);
-      --transition: 260ms cubic-bezier(.2,.9,.3,1);
-      --focus: 0 0 0 4px rgba(20,184,166,0.12);
-    }
-    [data-theme="dark"]{
-      --bg:#07121a; --card:#0b1a23; --text:#e6f3fb; --muted:#8aa3b2; --accent:#7dd3fc;
-      --accent-2:#60a5fa; --glass: rgba(10,20,30,0.6); --card-shadow: 0 8px 24px rgba(0,0,0,0.45);
-      --focus: 0 0 0 4px rgba(125,211,252,0.12);
-    }
-
-    /* Respect reduced motion */
-    @media (prefers-reduced-motion: reduce) {
-      :root { --transition: 0ms; }
-    }
-
-    html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
-    .wrap{max-width:1100px;margin:20px auto;padding:18px;}
-    header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
-    .brand{display:flex;gap:12px;align-items:center}
-    .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:#021;font-weight:800;box-shadow:var(--card-shadow);transform:translateZ(0)}
-    .title{font-weight:700;font-size:1.15rem}
-    .subtitle{font-size:0.85rem;color:var(--muted)}
-    .controls{display:flex;gap:10px;align-items:center}
-
-    /* Cards & layout */
-    .card{background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--card-shadow);transition:all var(--transition);border:1px solid rgba(0,0,0,0.03)}
-    .card:focus-within{box-shadow:var(--card-shadow), var(--focus)}
-    .row{display:flex;gap:14px}
-    .col{flex:1;min-width:260px}
-    .btn{background:var(--accent);border:0;color:#022;padding:8px 12px;border-radius:10px;font-weight:700;cursor:pointer}
-    .btn:focus{outline:none;box-shadow:var(--focus)}
-    .btn-ghost{background:transparent;border:1px solid rgba(0,0,0,0.08);padding:8px 10px;border-radius:8px;cursor:pointer}
-    .small{font-size:13px;color:var(--muted)}
-    input,select,textarea{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);background:transparent;color:var(--text)}
-    .thumb{width:96px;height:96px;object-fit:cover;border-radius:8px;border:1px solid rgba(0,0,0,0.06)}
-    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
-    .menu{display:flex;gap:8px;flex-wrap:wrap}
-    .menu button{background:transparent;border-radius:10px;padding:8px 10px;border:1px solid rgba(0,0,0,0.06);cursor:pointer}
-    .menu button.active{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#012;border:0}
-
-    /* Modal */
-    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;z-index:50;animation: fadeIn .22s ease}
-    .modal{width:calc(100% - 40px);max-width:880px;border-radius:12px;padding:18px;box-shadow:var(--card-shadow);background:var(--card);transform-origin:center;animation: pop .22s ease}
-
-    /* small animations */
-    @keyframes pop{ from{ transform: translateY(8px) scale(.985); opacity:0 } to{ transform:none; opacity:1 } }
-    @keyframes fadeIn{ from{ opacity:0 } to{ opacity:1 } }
-
-    /* float photo preview */
-    .float-photo{position:fixed;pointer-events:none;z-index:60;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,0.45);width:220px;height:220px;object-fit:cover}
-
-    footer{text-align:center;margin-top:18px;color:var(--muted);font-size:13px}
-
-    /* focus visible */
-    :focus{ outline:none; box-shadow: var(--focus); border-radius:8px }
-
-    /* keyboard nav visual */
-    .menu button:focus{ transform: translateY(-2px); }
-
-    @media(max-width:920px){ .row{flex-direction:column} .logo{display:none} }
-  </style>
 </head>
 <body>
   <div class="wrap">
-    <header>
-      <div class="brand" aria-hidden="false">
-        <div class="logo" aria-hidden="true">CP</div>
+    <header class="header">
+      <div class="brand">
+        <div class="logo">CP</div>
         <div>
-          <div class="title" id="appTitle">CoachPro</div>
-          <div class="subtitle" id="appSub">Gestione Peso & Progressi</div>
+          <div id="appTitle" class="title">CoachPro</div>
+          <div id="appSub" class="subtitle">Gestione Peso & Progressi</div>
         </div>
       </div>
 
-      <div class="controls" role="navigation" aria-label="Main controls">
-        <label for="lang" class="small" style="display:none">Lingua</label>
-        <select id="lang" aria-label="Language selector" title="Language">
-          <option value="it">IT</option><option value="en">EN</option>
+      <div class="controls" role="navigation" aria-label="controls">
+        <select id="lang" aria-label="Language">
+          <option value="it">IT</option>
+          <option value="en">EN</option>
         </select>
 
-        <button id="themeToggle" class="btn-ghost" aria-pressed="false" title="Toggle theme">🌗</button>
+        <button id="themeToggle" class="btn-ghost" aria-pressed="false" title="Theme toggle">🌗</button>
 
-        <div id="authWrap" style="display:flex;gap:8px;align-items:center">
-          <button id="btnLogin" class="btn" aria-label="Sign in">Accedi</button>
-          <button id="btnLogout" class="btn-ghost" style="display:none" aria-hidden="true">Esci</button>
+        <div id="authWrap" class="auth-wrap">
+          <button id="btnLogin" class="btn">Accedi</button>
+          <button id="btnLogout" class="btn-ghost" style="display:none">Esci</button>
         </div>
       </div>
     </header>
 
-    <!-- LOGIN CARD (shown when not logged) -->
-    <div id="loginCard" class="card" style="display:none" role="region" aria-labelledby="welcomeTitle">
-      <h3 id="welcomeTitle">Benvenuto</h3>
-      <p class="small" id="welcomeSub">Accedi con Google per iniziare</p>
-      <div style="display:flex;gap:10px;margin-top:12px">
-        <button id="quickSignIn" class="btn" aria-label="Sign in with Google">Accedi con Google</button>
+    <!-- Login card -->
+    <div id="loginCard" class="card center" role="region" aria-labelledby="welcomeTitle">
+      <h2 id="welcomeTitle">Benvenuto</h2>
+      <p id="welcomeSub" class="small">Accedi con Google per iniziare</p>
+      <div style="margin-top:12px">
+        <button id="quickSignIn" class="btn">Accedi con Google</button>
       </div>
     </div>
 
-    <!-- DASHBOARD (shown when logged) -->
-    <div id="dashboard" style="display:none" role="application" aria-live="polite">
-      <div class="row" style="margin-bottom:14px">
-        <div class="col card" style="min-width:260px;max-width:360px">
-          <div style="display:flex;align-items:center;gap:12px">
-            <img id="userPhoto" src="" alt="" style="width:72px;height:72px;border-radius:10px;object-fit:cover">
+    <!-- Dashboard -->
+    <main id="dashboard" style="display:none" aria-live="polite">
+      <div class="row top-row">
+        <aside class="card sidebar">
+          <div class="userbox">
+            <img id="userPhoto" class="avatar" src="" alt="">
             <div>
-              <div id="userName" style="font-weight:700">—</div>
-              <div class="small" id="userEmail">—</div>
+              <div id="userName" class="strong">—</div>
+              <div id="userEmail" class="small">—</div>
             </div>
           </div>
 
-          <hr style="margin:12px 0">
+          <hr>
 
-          <div class="small" style="margin-bottom:6px" id="quickActionsLabel">Quick actions</div>
-          <div class="menu" id="menu" role="tablist" aria-label="Dashboard sections">
-            <button role="tab" data-panel="weight" class="active" aria-selected="true">📊 Andamento</button>
-            <button role="tab" data-panel="photos" aria-selected="false">📸 Foto</button>
-            <button role="tab" data-panel="advices" aria-selected="false">🥗 Consigli</button>
-            <button role="tab" data-panel="recipes" aria-selected="false">👨‍🍳 Ricette</button>
-            <button role="tab" data-panel="assistant" aria-selected="false">💬 Assistente</button>
+          <div class="small">Sezioni</div>
+          <div class="menu" id="menu" role="tablist">
+            <button data-panel="weight" class="active" role="tab" aria-selected="true">📊 Andamento</button>
+            <button data-panel="photos" role="tab" aria-selected="false">📸 Foto</button>
+            <button data-panel="advices" role="tab" aria-selected="false">🥗 Consigli</button>
+            <button data-panel="recipes" role="tab" aria-selected="false">👨‍🍳 Ricette</button>
+            <button data-panel="assistant" role="tab" aria-selected="false">💬 Assistente</button>
           </div>
 
-          <div style="margin-top:12px">
-            <label class="small">Tema (auto)</label>
-            <div class="small">Il tema si adatta al sistema; usa il pulsante per override.</div>
+          <div style="margin-top:12px" class="small">
+            <div id="themeInfo">Tema: automatico (system)</div>
           </div>
-        </div>
+        </aside>
 
-        <div class="col card" style="flex:2">
-          <!-- dynamic panel container -->
-          <div id="panelContainer" aria-live="polite">
-            <!-- default: weight summary -->
-            <section id="panel-weight" aria-labelledby="panelTitle">
-              <div style="display:flex;justify-content:space-between;align-items:center">
-                <div>
-                  <h3 id="panelTitle">Andamento Peso</h3>
-                  <div class="small" id="panelSubtitle">Trend & stima obiettivo</div>
-                </div>
-                <div>
-                  <label class="small" for="weightInput" style="display:block">Peso (kg)</label>
-                  <input id="weightInput" placeholder="Peso kg" type="number" style="width:120px;margin-right:8px" aria-label="Inserisci peso" />
-                  <button id="saveWeight" class="btn" aria-label="Save weight">Salva</button>
-                </div>
+        <section class="card maincard" id="panelContainer">
+          <!-- Weight panel -->
+          <section id="panel-weight" class="panel">
+            <div class="panel-head">
+              <div>
+                <h3 id="panelTitle">Andamento Peso</h3>
+                <div id="panelSubtitle" class="small">Trend & stima obiettivo</div>
               </div>
-
-              <div style="margin-top:12px">
-                <canvas id="chart" height="140" role="img" aria-label="Grafico andamento peso"></canvas>
+              <div class="inline-form">
+                <label class="small" for="weightInput">Peso (kg)</label>
+                <input id="weightInput" type="number" inputmode="decimal" min="0" step="0.1" placeholder="es. 72.5">
+                <button id="saveWeight" class="btn">Salva</button>
               </div>
+            </div>
 
-              <div style="margin-top:10px;display:flex;gap:10px;align-items:center">
-                <button id="openChartDetail" class="btn-ghost" aria-haspopup="dialog">Apri grafico completo</button>
-                <div id="eta" class="small" aria-live="polite"></div>
-              </div>
-            </section>
+            <div class="chart-wrap">
+              <canvas id="chart" height="140" aria-label="Chart andamento peso"></canvas>
+            </div>
 
-            <section id="panel-photos" style="display:none" aria-labelledby="photosTitle">
-              <h3 id="photosTitle">Foto Progresso</h3>
-              <div style="margin-top:8px;display:flex;gap:10px;align-items:center">
-                <label class="small" for="photoFile">Seleziona foto</label>
-                <input id="photoFile" type="file" accept="image/*" aria-label="Seleziona una foto" />
-                <button id="uploadBtn" class="btn" aria-label="Upload photo">Carica</button>
-              </div>
+            <div class="panel-actions">
+              <button id="openChartDetail" class="btn-ghost">Apri grafico completo</button>
+              <div id="eta" class="small"></div>
+            </div>
+          </section>
 
-              <div id="photosGrid" style="margin-top:12px" class="grid" aria-live="polite"></div>
-            </section>
+          <!-- Photos panel -->
+          <section id="panel-photos" class="panel" style="display:none">
+            <h3>Foto Progresso</h3>
+            <div class="upload-row">
+              <input id="photoFile" type="file" accept="image/*">
+              <button id="uploadBtn" class="btn">Carica</button>
+            </div>
+            <div id="photosGrid" class="grid" aria-live="polite"></div>
+          </section>
 
-            <section id="panel-advices" style="display:none" aria-labelledby="advicesTitle">
-              <h3 id="advicesTitle">Consigli alimentari</h3>
-              <div id="advicesList" class="small" style="margin-top:8px">—</div>
-            </section>
+          <!-- Advices panel -->
+          <section id="panel-advices" class="panel" style="display:none">
+            <h3>Consigli alimentari</h3>
+            <div id="advicesList" class="list">—</div>
+          </section>
 
-            <section id="panel-recipes" style="display:none" aria-labelledby="recipesTitle">
-              <h3 id="recipesTitle">Ricette suggerite</h3>
-              <div id="recipesList" class="small" style="margin-top:8px">—</div>
-            </section>
+          <!-- Recipes panel -->
+          <section id="panel-recipes" class="panel" style="display:none">
+            <h3>Ricette suggerite</h3>
+            <div id="recipesList" class="list">—</div>
+          </section>
 
-            <section id="panel-assistant" style="display:none" aria-labelledby="assistantTitle">
-              <h3 id="assistantTitle">Assistente</h3>
-              <textarea id="aiQ" rows="3" placeholder="Fai una domanda..." style="margin-top:8px" aria-label="Assistant question"></textarea>
-              <div style="display:flex;gap:8px;margin-top:8px">
-                <button id="aiAsk" class="btn" aria-label="Ask AI">Invia</button>
-                <button id="aiClear" class="btn-ghost" aria-label="Clear AI">Pulisci</button>
-              </div>
-              <div id="aiOut" class="small" style="margin-top:10px;white-space:pre-wrap" aria-live="polite"></div>
-            </section>
-          </div>
-        </div>
+          <!-- Assistant -->
+          <section id="panel-assistant" class="panel" style="display:none">
+            <h3>Assistente</h3>
+            <textarea id="aiQ" rows="3" placeholder="Fai una domanda..."></textarea>
+            <div style="margin-top:8px;display:flex;gap:8px;">
+              <button id="aiAsk" class="btn">Invia</button>
+              <button id="aiClear" class="btn-ghost">Pulisci</button>
+            </div>
+            <div id="aiOut" class="small" style="margin-top:10px;white-space:pre-wrap"></div>
+          </section>
+        </section>
       </div>
 
-      <footer>© 2025 CoachPro</footer>
-    </div>
+      <footer class="footer">© 2025 CoachPro</footer>
+    </main>
 
-    <!-- Modal root -->
-    <div id="modalRoot" style="display:none" aria-hidden="true"></div>
+    <!-- Modal root for chart/photo -->
+    <div id="modalRoot" class="modal-root" style="display:none" aria-hidden="true"></div>
   </div>
 
-  <script type="module">
-  // ---------------- CONFIG ----------------
-  const WORKER_URL = "https://gino.personaltrainergustavo1.workers.dev"; // your worker
-  const FIREBASE_CONFIG = {
-    apiKey: "AIzaSyCE3yccgXo00Up-iekaAdgffOo_YyqXNuE",
-    authDomain: "gestione-peso-1d758.firebaseapp.com",
-    projectId: "gestione-peso-1d758",
-    storageBucket: "gestione-peso-1d758.firebasestorage.app",
-    messagingSenderId: "121949363903",
-    appId: "1:121949363903:web:4eb5f5a7131109ea8bb00a",
-    measurementId: "G-WGBB30D5FK"
-  };
-
-  // ---------------- IMPORT FIREBASE ----------------
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-  import {
-    getFirestore, collection, doc, setDoc, addDoc, getDocs, query, where, orderBy, serverTimestamp
-  } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-  const app = initializeApp(FIREBASE_CONFIG);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-  const provider = new GoogleAuthProvider();
-
-  // ---------------- UI ELEMENTS ----------------
-  const langEl = document.getElementById('lang');
-  const themeBtn = document.getElementById('themeToggle');
-  const loginBtn = document.getElementById('btnLogin');
-  const quickSign = document.getElementById('quickSignIn');
-  const logoutBtn = document.getElementById('btnLogout');
-  const loginCard = document.getElementById('loginCard');
-  const dashboard = document.getElementById('dashboard');
-  const userPhoto = document.getElementById('userPhoto');
-  const userName = document.getElementById('userName');
-  const userEmail = document.getElementById('userEmail');
-  const menu = document.getElementById('menu');
-  const panelContainer = document.getElementById('panelContainer');
-  const photosGrid = document.getElementById('photosGrid');
-  const advicesList = document.getElementById('advicesList');
-  const recipesList = document.getElementById('recipesList');
-  const photoFile = document.getElementById('photoFile');
-  const uploadBtn = document.getElementById('uploadBtn');
-  const weightInput = document.getElementById('weightInput');
-  const saveWeightBtn = document.getElementById('saveWeight');
-  const chartEl = document.getElementById('chart');
-  const openChartDetail = document.getElementById('openChartDetail');
-  const aiQ = document.getElementById('aiQ');
-  const aiAsk = document.getElementById('aiAsk');
-  const aiOut = document.getElementById('aiOut');
-  const modalRoot = document.getElementById('modalRoot');
-
-  // translations
-  const T = {
-    it: {
-      login: "Accedi con Google",
-      welcome: "Benvenuto",
-      weightPanel: "Andamento Peso",
-      photosPanel: "Foto Progresso",
-      advicesPanel: "Consigli alimentari",
-      recipesPanel: "Ricette suggerite",
-      assistantPanel: "Assistente",
-      uploadSuccess: "Foto caricata",
-      uploadFail: "Upload fallito",
-      saving: "Salvataggio..."
-    },
-    en: {
-      login: "Sign in with Google",
-      welcome: "Welcome",
-      weightPanel: "Weight Trend",
-      photosPanel: "Progress Photos",
-      advicesPanel: "Diet Tips",
-      recipesPanel: "Suggested Recipes",
-      assistantPanel: "Assistant",
-      uploadSuccess: "Photo uploaded",
-      uploadFail: "Upload failed",
-      saving: "Saving..."
-    }
-  };
-
-  // ---------------- THEME (auto + override) ----------------
-  const savedTheme = localStorage.getItem('cp_theme');
-  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const initial = savedTheme || (prefersDark ? 'dark' : 'light');
-  document.documentElement.setAttribute('data-theme', initial);
-  themeBtn.textContent = initial === 'dark' ? '☀️' : '🌙';
-  themeBtn.setAttribute('aria-pressed', initial==='dark');
-  themeBtn.addEventListener('click', () => {
-    const cur = document.documentElement.getAttribute('data-theme') || 'light';
-    const next = cur === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
-    themeBtn.textContent = next === 'dark' ? '☀️' : '🌙';
-    localStorage.setItem('cp_theme', next);
-    themeBtn.setAttribute('aria-pressed', next==='dark');
-  });
-
-  // ---------------- LANGUAGE ----------------
-  const savedLang = localStorage.getItem('cp_lang') || 'it';
-  langEl.value = savedLang;
-  applyLang(savedLang);
-  langEl.addEventListener('change', (e)=> { localStorage.setItem('cp_lang', e.target.value); applyLang(e.target.value); });
-
-  function applyLang(l){
-    document.getElementById('appTitle').textContent = l==='it' ? 'CoachPro' : 'CoachPro';
-    document.getElementById('appSub').textContent = l==='it' ? 'Gestione Peso & Progressi' : 'Weight & Progress Management';
-    document.getElementById('welcomeTitle').textContent = T[l].welcome;
-    document.getElementById('quickSignIn').textContent = T[l].login;
-    document.getElementById('panelTitle').textContent = T[l].weightPanel;
-    document.getElementById('panelSubtitle').textContent = l==='it' ? 'Trend & stima obiettivo' : 'Trend & ETA to goal';
-  }
-
-  // ---------------- AUTH ----------------
-  loginBtn.addEventListener('click', ()=> signIn());
-  quickSign.addEventListener('click', ()=> signIn());
-  logoutBtn.addEventListener('click', async ()=> { await signOut(auth); });
-
-  async function signIn(){
-    try{
-      const res = await signInWithPopup(auth, provider);
-      const u = res.user;
-      // write user doc (merge)
-      await setDoc(doc(db,'users',u.uid), {
-        uid: u.uid,
-        name: u.displayName || "",
-        email: u.email || "",
-        photoURL: u.photoURL || "",
-        lastSeen: serverTimestamp()
-      }, { merge: true });
-    }catch(e){
-      console.error('signin', e);
-      alert(e.message || e);
-    }
-  }
-
-  // ---------------- AUTH STATE ----------------
-  let currentUser = null;
-  onAuthStateChanged(auth, async user => {
-    if(!user){
-      loginCard.style.display = 'block';
-      dashboard.style.display = 'none';
-      document.getElementById('authWrap').style.display='flex';
-      document.getElementById('btnLogout').style.display='none';
-      return;
-    }
-    currentUser = user;
-    loginCard.style.display = 'none';
-    dashboard.style.display = 'block';
-    document.getElementById('btnLogout').style.display='inline-block';
-    document.getElementById('btnLogin').style.display='none';
-    userPhoto.src = user.photoURL || "https://via.placeholder.com/96";
-    userPhoto.alt = user.displayName ? `${user.displayName} photo` : 'user photo';
-    userName.textContent = user.displayName || "Client";
-    userEmail.textContent = user.email || "";
-    await loadWeightsAndRender();
-    await loadPhotos();
-    await loadAdvices();
-    await loadRecipes();
-  });
-
-  // ---------------- MENU HANDLING (keyboard friendly) ----------------
-  menu.querySelectorAll('button').forEach((btn, idx)=>{
-    btn.addEventListener('click', ()=>{
-      menu.querySelectorAll('button').forEach(b=>{ b.classList.remove('active'); b.setAttribute('aria-selected','false'); });
-      btn.classList.add('active');
-      btn.setAttribute('aria-selected','true');
-      const panel = btn.dataset.panel;
-      panelContainer.querySelectorAll('[id^="panel-"]').forEach(p => p.style.display = 'none');
-      const el = document.getElementById('panel-'+panel);
-      if(el) el.style.display = 'block';
-      // focus management
-      const focusable = el.querySelector('button, input, textarea, [tabindex]') || el;
-      focusable.focus && focusable.focus();
-    });
-    // arrow navigation
-    btn.addEventListener('keydown', (e)=>{
-      if(e.key === 'ArrowRight'){ const next = menu.children[(idx+1)%menu.children.length]; next.focus(); next.click(); }
-      if(e.key === 'ArrowLeft'){ const prev = menu.children[(idx-1+menu.children.length)%menu.children.length]; prev.focus(); prev.click(); }
-    });
-  });
-
-  // ---------------- CHART (weights) ----------------
-  let chart = null;
-  async function loadWeightsAndRender(){
-    if(!currentUser) return;
-    const q = query(collection(db, 'users', currentUser.uid, 'weights'), orderBy('ts','asc'));
-    const snap = await getDocs(q);
-    const labs = [], data=[];
-    snap.forEach(d=>{
-      const v = d.data();
-      const date = v.ts ? new Date(v.ts.seconds*1000) : new Date();
-      labs.push(date.toLocaleDateString());
-      data.push(v.value);
-    });
-    renderChart(labs, data);
-  }
-
-  function renderChart(labels, data){
-    if(!chart){
-      const ctx = chartEl.getContext('2d');
-      chart = new Chart(ctx, {
-        type: 'line',
-        data: { labels, datasets: [{ label: 'Peso', data, tension:0.3, borderColor: getComputedStyle(document.documentElement).getPropertyValue('--accent') }]},
-        options: {
-          responsive:true,
-          plugins:{tooltip:{enabled:true}},
-          scales:{y:{beginAtZero:false}}
-        }
-      });
-    } else {
-      chart.data.labels = labels; chart.data.datasets[0].data = data; chart.update();
-    }
-  }
-
-  // save weight
-  saveWeightBtn.addEventListener('click', async ()=>{
-    if(!currentUser) return alert('login required');
-    const v = Number(weightInput.value);
-    if(!v) return alert('Inserisci valore valido');
-    await addDoc(collection(db,'users',currentUser.uid,'weights'), { value: v, ts: serverTimestamp() });
-    weightInput.value = '';
-    await loadWeightsAndRender();
-    notify('Peso salvato');
-  });
-
-  // open chart detail -> modal
-  openChartDetail.addEventListener('click', ()=> showModalChart());
-
-  // ---------------- PHOTOS ----------------
-  async function loadPhotos(){
-    photosGrid.innerHTML = '';
-    if(!currentUser) return;
-    const q = query(collection(db,'users',currentUser.uid,'photos'), orderBy('uploadedAt','desc'));
-    const snap = await getDocs(q);
-    const arr = [];
-    snap.forEach(d => arr.push(d.data()));
-    if(arr.length===0) photosGrid.innerHTML = '<div class="small">Nessuna foto</div>';
-    arr.forEach(p => {
-      const card = document.createElement('button');
-      card.className = 'card';
-      card.style.display = 'inline-block';
-      card.style.textAlign = 'center';
-      card.style.padding = '8px';
-      card.setAttribute('aria-label','Apri foto');
-      card.innerHTML = `<img src="${p.url}" class="thumb" alt="progress photo"><div class="small" style="margin-top:6px">${new Date((p.uploadedAt?.seconds||Date.now())*1000).toLocaleDateString()}</div>`;
-      card.onclick = ()=> showModalPhoto(p.url);
-      photosGrid.appendChild(card);
-    });
-  }
-
-  uploadBtn.addEventListener('click', async ()=>{
-    if(!photoFile.files.length) return alert('Seleziona file');
-    const file = photoFile.files[0];
-    uploadBtn.disabled = true; uploadBtn.textContent = 'Uploading...';
-    try{
-      const idToken = await currentUser.getIdToken();
-      const fd = new FormData();
-      fd.append('file', file);
-      fd.append('uid', currentUser.uid);
-      const res = await fetch(`${WORKER_URL}/upload`, { method:'POST', headers:{ Authorization: 'Bearer '+idToken }, body: fd });
-      const j = await res.json();
-      if(!j.key && !j.url) throw new Error('upload failed');
-      const url = j.url || `${WORKER_URL}/file/${encodeURIComponent(j.key)}`;
-      await addDoc(collection(db, 'users', currentUser.uid, 'photos'), { url, key: j.key, filename: file.name, uploadedAt: serverTimestamp() });
-      notify(T[localStorage.getItem('cp_lang')||'it'].uploadSuccess);
-      await loadPhotos();
-    }catch(e){
-      console.error(e);
-      alert(T[localStorage.getItem('cp_lang')||'it'].uploadFail + ': ' + (e.message||e));
-    } finally { uploadBtn.disabled=false; uploadBtn.textContent='Carica'; photoFile.value=''; }
-  });
-
-  // ---------------- ADVICES / RECIPES ----------------
-  async function loadAdvices(){
-    advicesList.innerHTML = 'Loading...';
-    if(!currentUser) return;
-    const q = query(collection(db,'advices'), where('approved','==',true), orderBy('createdAt','desc'));
-    const snap = await getDocs(q);
-    if(snap.empty){ advicesList.innerHTML = '<div class="small">Nessun consiglio</div>'; return; }
-    advicesList.innerHTML = snap.docs.map(d=>{
-      const data = d.data();
-      const assigned = data.assignedTo || 'all';
-      if(assigned !== 'all' && assigned !== currentUser.uid) return '';
-      return `<article class="card" style="margin-bottom:8px"><header><strong>${data.title||'Consiglio'}</strong></header><p class="small">${(data.text||'').slice(0,220)}</p><div class="small" style="margin-top:8px">Autore: ${data.author||'coach'}</div></article>`;
-    }).join('');
-  }
-
-  async function loadRecipes(){
-    recipesList.innerHTML = 'Loading...';
-    if(!currentUser) return;
-    const q = query(collection(db,'recipes'), where('approved','==',true), orderBy('createdAt','desc'));
-    const snap = await getDocs(q);
-    if(snap.empty){ recipesList.innerHTML = '<div class="small">Nessuna ricetta</div>'; return; }
-    recipesList.innerHTML = snap.docs.map(d=>{
-      const data = d.data();
-      const assigned = data.assignedTo || 'all';
-      if(assigned !== 'all' && assigned !== currentUser.uid) return '';
-      return `<article class="card" style="margin-bottom:8px"><header><strong>${data.title||data.food||'Ricetta'}</strong></header><p class="small">${(data.generatedText||data.text||'').slice(0,240)}</p></article>`;
-    }).join('');
-  }
-
-  // ---------------- AI Assistant (via Worker) ----------------
-  aiAsk.addEventListener('click', async ()=>{
-    const q = aiQ.value.trim();
-    if(!q) return;
-    aiOut.textContent = '...';
-    try {
-      const res = await fetch(`${WORKER_URL}/api/chat`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ messages:[{ role:'user', content:q }] }) });
-      const j = await res.json();
-      const text = j.choices?.[0]?.message?.content || j.choices?.[0]?.text || JSON.stringify(j);
-      aiOut.textContent = text;
-    } catch(e){
-      aiOut.textContent = 'AI error: ' + (e.message||e);
-    }
-  });
-
-  // ---------------- MODALS ----------------
-  function showModalPhoto(url){
-    modalRoot.innerHTML = `<div class="modal-backdrop" role="dialog" aria-modal="true"><div class="modal"><img src="${url}" style="width:100%;border-radius:8px" alt="Foto progresso"><div style="margin-top:8px;display:flex;justify-content:flex-end"><button id="closeModal" class="btn-ghost">Chiudi</button></div></div></div>`;
-    modalRoot.style.display='block'; modalRoot.setAttribute('aria-hidden','false');
-    document.getElementById('closeModal').onclick = ()=> { modalRoot.style.display='none'; modalRoot.innerHTML=''; modalRoot.setAttribute('aria-hidden','true'); };
-  }
-
-  function showModalChart(){
-    modalRoot.innerHTML = `<div class="modal-backdrop" role="dialog" aria-modal="true"><div class="modal"><h3>Andamento Peso — dettaglio</h3><canvas id="bigChart" height="260" aria-label="Grafico dettagliato"></canvas><div style="margin-top:12px;display:flex;justify-content:flex-end"><button id="closeModal" class="btn-ghost">Chiudi</button></div></div></div>`;
-    modalRoot.style.display='block'; modalRoot.setAttribute('aria-hidden','false');
-    document.getElementById('closeModal').onclick = ()=> { modalRoot.style.display='none'; modalRoot.innerHTML=''; modalRoot.setAttribute('aria-hidden','true'); };
-    (async()=>{
-      const q = query(collection(db, 'users', currentUser.uid, 'weights'), orderBy('ts','asc'));
-      const snap = await getDocs(q);
-      const labs = [], data=[];
-      snap.forEach(d=>{
-        const v = d.data();
-        labs.push(v.ts ? new Date(v.ts.seconds*1000).toLocaleDateString() : '');
-        data.push(v.value);
-      });
-      const ctx = document.getElementById('bigChart').getContext('2d');
-      new Chart(ctx, { type:'line', data:{ labels: labs, datasets:[{ label:'Peso', data, tension:0.2, borderColor: getComputedStyle(document.documentElement).getPropertyValue('--accent')}]}, options:{responsive:true} });
-    })();
-  }
-
-  // ---------------- NOTIFY ----------------
-  function notify(msg, time=2400){ const n = document.createElement('div'); n.style.position='fixed'; n.style.right='18px'; n.style.bottom='18px'; n.style.padding='10px 12px'; n.style.background='var(--card)'; n.style.borderRadius='8px'; n.style.boxShadow='var(--card-shadow)'; n.textContent=msg; document.body.appendChild(n); setTimeout(()=>n.remove(),time); }
-
-  // ---------------- END ----------------
-  </script>
+  <script type="module" src="script.js"></script>
 </body>
 </html>

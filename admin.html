@@ -3,46 +3,45 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Dashboard</title>
+<title>Admin Panel</title>
 <link rel="stylesheet" href="styles.css">
-<script type="module" src="api.js"></script>
-<script type="module" src="main.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body class="theme-light">
-
+<body>
 <header>
-  <h1 data-i18n="admin_title">Admin Dashboard</h1>
-  <div class="controls">
-    <button id="toggle-theme" data-i18n="toggle_theme">Tema</button>
-    <select id="lang-select">
-      <option value="it">IT</option>
-      <option value="en">EN</option>
-    </select>
+  <h1 data-i18n="admin-panel">Pannello Admin</h1>
+  <div class="toggles">
+    <button id="themeToggle" data-i18n="theme">Tema</button>
+    <button id="langToggle">EN/IT</button>
   </div>
 </header>
 
-<main class="admin-panel">
-  <div class="card">
-    <h2 data-i18n="select_client">Seleziona Cliente</h2>
-    <select id="client-select"></select>
+<main class="admin-dashboard">
+  <div class="card" data-type="clients">
+    <h3 data-i18n="clients">Clienti</h3>
+    <select id="clientSelect"></select>
   </div>
 
-  <div class="card">
-    <h2 data-i18n="advices_drafts">Bozze Consigli</h2>
-    <ul id="advices-admin-list"></ul>
+  <div class="card" data-type="advices">
+    <h3 data-i18n="advices">Consigli Alimentari</h3>
+    <div id="advicesAdminList"></div>
+    <button id="addAdviceBtn" data-i18n="add-advice">Aggiungi Consiglio</button>
   </div>
 
-  <div class="card">
-    <h2 data-i18n="recipes_drafts">Bozze Ricette</h2>
-    <ul id="recipes-admin-list"></ul>
+  <div class="card" data-type="recipes">
+    <h3 data-i18n="recipes">Ricette</h3>
+    <div id="recipesAdminList"></div>
+    <button id="addRecipeBtn" data-i18n="add-recipe">Aggiungi Ricetta</button>
   </div>
 
-  <div class="card">
-    <h2 data-i18n="upload_photo">Upload Foto Cliente</h2>
-    <input type="file" id="photo-upload">
-    <button id="upload-btn" data-i18n="upload">Carica</button>
+  <div class="card" data-type="upload">
+    <h3 data-i18n="upload-photo">Upload Foto Cliente</h3>
+    <input type="file" id="photoUpload" accept="image/*">
+    <button id="uploadPhotoBtn" data-i18n="upload">Carica</button>
   </div>
 </main>
 
+<script type="module" src="api.js"></script>
+<script type="module" src="main-admin.js"></script>
 </body>
 </html>

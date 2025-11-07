@@ -1,36 +1,20 @@
-export async function fetchClientData(){
-  const resp = await fetch('/api/client-data');
-  return resp.json();
-}
+const workerUrl = 'https://gino.personaltrainergustavo1.workers.dev';
 
-export async function fetchAdminData(){
-  const resp = await fetch('/api/admin-data');
-  return resp.json();
-}
+// Client fetch
+export async function fetchWeights(){ const res=await fetch(`${workerUrl}/users/weights`); return res.ok?await res.json():[]; }
+export async function fetchPhotos(){ const res=await fetch(`${workerUrl}/users/photos`); return res.ok?await res.json():[]; }
+export async function fetchAdvices(){ const res=await fetch(`${workerUrl}/advices`); return res.ok?await res.json():[]; }
+export async function fetchRecipes(){ const res=await fetch(`${workerUrl}/recipes`); return res.ok?await res.json():[]; }
 
-export async function uploadPhoto(clientId,file){
-  const token = localStorage.getItem('idToken'); // Firebase Auth token
-  const resp = await fetch(`/upload/${clientId}`,{
-    method:'PUT',
-    headers:{ 'Authorization': `Bearer ${token}` },
-    body:file
-  });
-  if(!resp.ok) alert('Upload fallito');
-  else alert('Upload completato');
-}
+// Admin fetch
+export async function fetchClients(){ const res=await fetch(`${workerUrl}/users`); return res.ok?await res.json():[]; }
 
-export async function approveAdvice(id,value){
-  const resp = await fetch(`/api/approve/advice/${id}`,{
-    method:'POST',
-    body: JSON.stringify({ approved: value }),
-    headers:{'Content-Type':'application/json'}
-  });
-}
-
-export async function approveRecipe(id,value){
-  const resp = await fetch(`/api/approve/recipe/${id}`,{
-    method:'POST',
-    body: JSON.stringify({ approved: value }),
-    headers:{'Content-Type':'application/json'}
-  });
+// Admin actions
+export async function addAdvice(clientId, text){ const res=await fetch(`${workerUrl}/advices`,{method:'POST',body:JSON.stringify({clientId,text})}); return res.ok?await res.json():null; }
+export async function addRecipe(clientId, text){ const res=await fetch(`${workerUrl}/recipes`,{method:'POST',body:JSON.stringify({clientId,text})}); return res.ok?await res.json():null; }
+export async function uploadPhoto(clientId, file){
+  const formData = new FormData();
+  formData.append('file', file);
+  const res=await fetch(`${workerUrl}/upload?clientId=${clientId}`,{method:'PUT',body:file});
+  return res.ok?await res.json():{success:false};
 }

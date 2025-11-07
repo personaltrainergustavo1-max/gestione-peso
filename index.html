@@ -9,36 +9,43 @@
 </head>
 <body>
 <header>
-  <h1 data-i18n="dashboard">Dashboard Cliente</h1>
-  <div class="toggles">
-    <button id="themeToggle" data-i18n="theme">Tema</button>
-    <button id="langToggle">EN/IT</button>
-  </div>
+    <h1 data-i18n="weight-tracking">Andamento Peso</h1>
+    <div class="toggles">
+        <button id="themeToggle" data-i18n="theme">Tema</button>
+        <button id="langToggle">EN/IT</button>
+    </div>
 </header>
 
 <main class="dashboard">
-  <div class="card" data-type="weight">
-    <h3 data-i18n="weight-progress">Andamento Peso</h3>
-    <canvas id="weightChart"></canvas>
-  </div>
+    <!-- Card Peso -->
+    <div class="card">
+        <h2 data-i18n="weight-tracking">Andamento Peso</h2>
+        <canvas id="weightChart"></canvas>
+    </div>
 
-  <div class="card" data-type="advices">
-    <h3 data-i18n="advices">Consigli Alimentari</h3>
-    <div id="advicesList"></div>
-  </div>
+    <!-- Card Consigli Alimentari -->
+    <div class="card">
+        <h2 data-i18n="advices">Consigli Alimentari</h2>
+        <div id="advicesList">
+            <!-- Lista consigli generata dinamicamente -->
+        </div>
+    </div>
 
-  <div class="card" data-type="recipes">
-    <h3 data-i18n="recipes">Ricette</h3>
-    <div id="recipesList"></div>
-  </div>
+    <!-- Card Ricette -->
+    <div class="card">
+        <h2 data-i18n="recipes">Ricette</h2>
+        <div id="recipesList">
+            <!-- Lista ricette generata dinamicamente -->
+        </div>
+    </div>
 </main>
 
-<!-- Modal Foto Interattivo -->
+<!-- Modal foto overlay -->
 <div id="photoModal" class="modal">
-  <span class="closeBtn">&times;</span>
-  <div class="modal-inner">
-    <img class="modal-content" id="modalPhoto" draggable="false">
-  </div>
+    <span class="closeBtn">&times;</span>
+    <div class="modal-inner">
+        <img src="" alt="Foto progresso">
+    </div>
 </div>
 
 <script type="module" src="api.js"></script>

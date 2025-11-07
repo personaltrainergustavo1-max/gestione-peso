@@ -1,75 +1,85 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Panel</title>
-<link rel="stylesheet" href="styles.css">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin — Gestione Peso</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
-<body data-theme="light">
-<header>
+<body>
+<header class="header">
   <h1 data-i18n="admin-panel">Pannello Admin</h1>
   <div class="toggles">
     <button id="themeToggle" data-i18n="theme">Tema</button>
     <button id="langToggle">EN/IT</button>
+    <span id="adminEmailBadge" class="admin-badge"></span>
+    <button id="signOutBtn">Sign out</button>
   </div>
 </header>
 
 <main class="admin-dashboard">
 
-  <!-- Selezione cliente -->
-  <div class="card" data-type="clients">
-    <h3 data-i18n="clients">Clienti</h3>
-    <select id="clientSelect"></select>
-  </div>
+  <!-- CLIENTI -->
+  <section class="card">
+    <h2 data-i18n="clients">Clienti</h2>
+    <select id="clientSelect" aria-label="Seleziona cliente"></select>
+    <div id="clientInfo" class="muted small"></div>
+  </section>
 
-  <!-- Consigli Alimentari -->
-  <div class="card" data-type="advices">
-    <h3 data-i18n="advices">Consigli Alimentari</h3>
-    <div id="advicesAdminList"></div>
-    <button id="addAdviceBtn" data-i18n="add-advice">Aggiungi Consiglio</button>
-  </div>
+  <!-- BOZZE / CONSIGLI -->
+  <section class="card">
+    <h2 data-i18n="advices">Consigli (Bozze / Approvati)</h2>
+    <div id="advicesAdminList" class="list"></div>
+    <button id="addAdviceBtn" class="primary" data-i18n="add-advice">Aggiungi Consiglio</button>
+  </section>
 
-  <!-- Ricette -->
-  <div class="card" data-type="recipes">
-    <h3 data-i18n="recipes">Ricette</h3>
-    <div id="recipesAdminList"></div>
-    <button id="addRecipeBtn" data-i18n="add-recipe">Aggiungi Ricetta</button>
-  </div>
+  <!-- BOZZE / RICETTE -->
+  <section class="card">
+    <h2 data-i18n="recipes">Ricette (Bozze / Approvate)</h2>
+    <div id="recipesAdminList" class="list"></div>
+    <button id="addRecipeBtn" class="primary" data-i18n="add-recipe">Aggiungi Ricetta</button>
+  </section>
 
-  <!-- Upload Foto Cliente -->
-  <div class="card" data-type="upload">
-    <h3 data-i18n="upload-photo">Upload Foto Cliente</h3>
-    <input type="file" id="photoUpload" accept="image/*">
-    <button id="uploadPhotoBtn" data-i18n="upload">Carica</button>
-    <p id="uploadFeedback"></p>
-  </div>
+  <!-- UPLOAD FOTO -->
+  <section class="card">
+    <h2 data-i18n="upload-photo">Upload Foto Cliente</h2>
+    <input type="file" id="photoUpload" accept="image/*" />
+    <button id="uploadPhotoBtn" class="primary" data-i18n="upload">Carica</button>
+    <div id="uploadFeedback" class="muted small"></div>
+  </section>
 
 </main>
 
-<!-- Modale Consiglio -->
-<div id="adviceModal" class="modal">
+<!-- MODALE: aggiungi/modify CONSIGLIO -->
+<div id="modalAdvice" class="modal" aria-hidden="true">
   <div class="modal-content">
-    <span class="closeBtn">&times;</span>
-    <h3 data-i18n="add-advice">Nuovo Consiglio</h3>
-    <textarea id="adviceText" placeholder="Scrivi qui il consiglio..."></textarea>
-    <button id="saveAdviceBtn" data-i18n="save">Salva</button>
+    <button class="closeBtn" data-target="modalAdvice">&times;</button>
+    <h3>Aggiungi / Modifica Consiglio</h3>
+    <input id="adviceTitle" placeholder="Titolo (opzionale)" />
+    <textarea id="adviceBody" rows="6" placeholder="Testo del consiglio (obbligatorio)"></textarea>
+    <label><input type="checkbox" id="adviceApproved" /> Approvato (seleziona per pubblicare subito)</label>
+    <div class="modal-actions">
+      <button id="saveAdviceBtn" class="primary">Salva</button>
+      <button class="cancelBtn" data-target="modalAdvice">Annulla</button>
+    </div>
   </div>
 </div>
 
-<!-- Modale Ricetta -->
-<div id="recipeModal" class="modal">
+<!-- MODALE: aggiungi/modify RICETTA -->
+<div id="modalRecipe" class="modal" aria-hidden="true">
   <div class="modal-content">
-    <span class="closeBtn">&times;</span>
-    <h3 data-i18n="add-recipe">Nuova Ricetta</h3>
-    <textarea id="recipeText" placeholder="Scrivi qui la ricetta..."></textarea>
-    <button id="saveRecipeBtn" data-i18n="save">Salva</button>
+    <button class="closeBtn" data-target="modalRecipe">&times;</button>
+    <h3>Aggiungi / Modifica Ricetta</h3>
+    <input id="recipeTitle" placeholder="Titolo (es. Uova strapazzate light)" />
+    <textarea id="recipeBody" rows="6" placeholder="Ingredienti e procedimento (obbligatorio)"></textarea>
+    <label><input type="checkbox" id="recipeApproved" /> Approvato (seleziona per pubblicare subito)</label>
+    <div class="modal-actions">
+      <button id="saveRecipeBtn" class="primary">Salva</button>
+      <button class="cancelBtn" data-target="modalRecipe">Annulla</button>
+    </div>
   </div>
 </div>
 
-<script type="module" src="api.js"></script>
 <script type="module" src="main-admin.js"></script>
-
 </body>
 </html>

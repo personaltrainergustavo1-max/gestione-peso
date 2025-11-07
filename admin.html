@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="styles.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
+<body data-theme="light">
 <header>
   <h1 data-i18n="admin-panel">Pannello Admin</h1>
   <div class="toggles">
@@ -17,31 +17,59 @@
 </header>
 
 <main class="admin-dashboard">
+
+  <!-- Selezione cliente -->
   <div class="card" data-type="clients">
     <h3 data-i18n="clients">Clienti</h3>
     <select id="clientSelect"></select>
   </div>
 
+  <!-- Consigli Alimentari -->
   <div class="card" data-type="advices">
     <h3 data-i18n="advices">Consigli Alimentari</h3>
     <div id="advicesAdminList"></div>
     <button id="addAdviceBtn" data-i18n="add-advice">Aggiungi Consiglio</button>
   </div>
 
+  <!-- Ricette -->
   <div class="card" data-type="recipes">
     <h3 data-i18n="recipes">Ricette</h3>
     <div id="recipesAdminList"></div>
     <button id="addRecipeBtn" data-i18n="add-recipe">Aggiungi Ricetta</button>
   </div>
 
+  <!-- Upload Foto Cliente -->
   <div class="card" data-type="upload">
     <h3 data-i18n="upload-photo">Upload Foto Cliente</h3>
     <input type="file" id="photoUpload" accept="image/*">
     <button id="uploadPhotoBtn" data-i18n="upload">Carica</button>
+    <p id="uploadFeedback"></p>
   </div>
+
 </main>
+
+<!-- Modale Consiglio -->
+<div id="adviceModal" class="modal">
+  <div class="modal-content">
+    <span class="closeBtn">&times;</span>
+    <h3 data-i18n="add-advice">Nuovo Consiglio</h3>
+    <textarea id="adviceText" placeholder="Scrivi qui il consiglio..."></textarea>
+    <button id="saveAdviceBtn" data-i18n="save">Salva</button>
+  </div>
+</div>
+
+<!-- Modale Ricetta -->
+<div id="recipeModal" class="modal">
+  <div class="modal-content">
+    <span class="closeBtn">&times;</span>
+    <h3 data-i18n="add-recipe">Nuova Ricetta</h3>
+    <textarea id="recipeText" placeholder="Scrivi qui la ricetta..."></textarea>
+    <button id="saveRecipeBtn" data-i18n="save">Salva</button>
+  </div>
+</div>
 
 <script type="module" src="api.js"></script>
 <script type="module" src="main-admin.js"></script>
+
 </body>
 </html>

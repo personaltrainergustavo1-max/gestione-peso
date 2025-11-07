@@ -1,152 +1,320 @@
 // main-admin.js
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getFirestore, collection, getDocs, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+// Admin UI — Firestore + Cloudflare Worker upload
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
+import {
+  getFirestore, collection, getDocs, doc, setDoc, updateDoc, deleteDoc, query, where, orderBy
+} from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 
-// Firebase config
+// -------------------------- CONFIG FIREBASE --------------------------
 const firebaseConfig = {
-    apiKey: "AIzaSyCE3yccgXo00Up-iekaAdgffOo_YyqXNuE",
-    authDomain: "gestione-peso-1d758.firebaseapp.com",
-    projectId: "gestione-peso-1d758",
-    storageBucket: "gestione-peso-1d758.firebasestorage.app",
-    messagingSenderId: "121949363903",
-    appId: "1:121949363903:web:4eb5f5a7131109ea8bb00a",
-    measurementId: "G-WGBB30D5FK"
+  apiKey: "AIzaSyCE3yccgXo00Up-iekaAdgffOo_YyqXNuE",
+  authDomain: "gestione-peso-1d758.firebaseapp.com",
+  projectId: "gestione-peso-1d758",
+  storageBucket: "gestione-peso-1d758.appspot.com",
+  messagingSenderId: "121949363903",
+  appId: "1:121949363903:web:4eb5f5a7131109ea8bb00a",
+  measurementId: "G-WGBB30D5FK"
 };
-
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
 const auth = getAuth(app);
+const db = getFirestore(app);
 
-// --- ELEMENTI DOM ---
+// -------------------------- CONFIG AZIENDA / SICUREZZA --------------------------
+const ADMIN_EMAIL = "personaltrainergustavo1@gmail.com"; // cambia qui se necessario
+const WORKER_UPLOAD_URL = "https://gino.personaltrainergustavo1.workers.dev/upload"; // endpoint Worker per PUT photo
+
+// -------------------------- ELEMENTI DOM --------------------------
 const clientSelect = document.getElementById("clientSelect");
+const clientInfo = document.getElementById("clientInfo");
+
+const advicesAdminList = document.getElementById("advicesAdminList");
+const recipesAdminList = document.getElementById("recipesAdminList");
 const addAdviceBtn = document.getElementById("addAdviceBtn");
 const addRecipeBtn = document.getElementById("addRecipeBtn");
-const adviceModal = document.getElementById("adviceModal");
-const recipeModal = document.getElementById("recipeModal");
-const saveAdviceBtn = document.getElementById("saveAdviceBtn");
-const saveRecipeBtn = document.getElementById("saveRecipeBtn");
-const adviceText = document.getElementById("adviceText");
-const recipeText = document.getElementById("recipeText");
-const themeToggle = document.getElementById("themeToggle");
-const langToggle = document.getElementById("langToggle");
+
 const photoUpload = document.getElementById("photoUpload");
 const uploadPhotoBtn = document.getElementById("uploadPhotoBtn");
 const uploadFeedback = document.getElementById("uploadFeedback");
 
-// --- UTILITY MODALI ---
-function openModal(modal) {
-    modal.style.display = "flex";
-    modal.classList.add("fade-in");
+const adminEmailBadge = document.getElementById("adminEmailBadge");
+const signOutBtn = document.getElementById("signOutBtn");
+
+// Modali e campi
+const modalAdvice = document.getElementById("modalAdvice");
+const modalRecipe = document.getElementById("modalRecipe");
+const adviceTitle = document.getElementById("adviceTitle");
+const adviceBody = document.getElementById("adviceBody");
+const adviceApproved = document.getElementById("adviceApproved");
+const saveAdviceBtn = document.getElementById("saveAdviceBtn");
+
+const recipeTitle = document.getElementById("recipeTitle");
+const recipeBody = document.getElementById("recipeBody");
+const recipeApproved = document.getElementById("recipeApproved");
+const saveRecipeBtn = document.getElementById("saveRecipeBtn");
+
+// -------------------------- HELPERS MODALI --------------------------
+function openModal(id) {
+  const node = document.getElementById(id);
+  if(!node) return;
+  node.style.display = "flex";
+  node.setAttribute("aria-hidden","false");
 }
-function closeModal(modal) {
-    modal.classList.remove("fade-in");
-    modal.style.display = "none";
+function closeModal(id) {
+  const node = document.getElementById(id);
+  if(!node) return;
+  node.style.display = "none";
+  node.setAttribute("aria-hidden","true");
 }
-document.querySelectorAll(".closeBtn").forEach(btn => {
-    btn.addEventListener("click", () => {
-        closeModal(btn.closest(".modal"));
-    });
+document.querySelectorAll(".closeBtn").forEach(btn=>{
+  btn.addEventListener("click", e=>{
+    const t = btn.getAttribute("data-target") || btn.closest(".modal")?.id;
+    if(t) closeModal(t);
+  });
+});
+document.querySelectorAll(".cancelBtn").forEach(b=>{
+  b.addEventListener("click", e=>{
+    const t = b.getAttribute("data-target");
+    if(t) closeModal(t);
+  });
 });
 
-// --- TOGGLE DAY/NIGHT ---
-themeToggle.addEventListener("click", () => {
-    const currentTheme = document.body.dataset.theme;
-    document.body.dataset.theme = currentTheme === "light" ? "dark" : "light";
+// -------------------------- AUTH & ADMIN CHECK --------------------------
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    // non loggato → reindirizza al login
+    window.location.href = "login.html";
+    return;
+  }
+  // verifica admin
+  const email = user.email || "";
+  adminEmailBadge.innerText = email;
+  if (email !== ADMIN_EMAIL) {
+    alert("Accesso riservato all'admin.");
+    await signOut(auth);
+    window.location.href = "login.html";
+    return;
+  }
+  // Carica dati
+  await loadClients();
+  await loadAdvices();
+  await loadRecipes();
 });
 
-// --- TOGGLE LINGUA ---
-let currentLang = "it";
-const translations = {
-    "admin-panel": { en: "Admin Panel", it: "Pannello Admin" },
-    "clients": { en: "Clients", it: "Clienti" },
-    "advices": { en: "Advices", it: "Consigli Alimentari" },
-    "recipes": { en: "Recipes", it: "Ricette" },
-    "add-advice": { en: "Add Advice", it: "Aggiungi Consiglio" },
-    "add-recipe": { en: "Add Recipe", it: "Aggiungi Ricetta" },
-    "upload-photo": { en: "Upload Client Photo", it: "Upload Foto Cliente" },
-    "upload": { en: "Upload", it: "Carica" },
-    "save": { en: "Save", it: "Salva" },
-};
-langToggle.addEventListener("click", () => {
-    currentLang = currentLang === "it" ? "en" : "it";
-    document.querySelectorAll("[data-i18n]").forEach(el => {
-        const key = el.dataset.i18n;
-        el.innerText = translations[key][currentLang];
-    });
+// Sign out
+signOutBtn.addEventListener("click", async ()=>{
+  await signOut(auth);
+  window.location.href = "login.html";
 });
 
-// --- CARICAMENTO CLIENTI ---
+// -------------------------- CARICA CLIENTI --------------------------
 async function loadClients() {
-    const usersSnap = await getDocs(collection(db, "users"));
-    clientSelect.innerHTML = "<option value=''>Seleziona Cliente</option>";
-    usersSnap.forEach(docSnap => {
-        const data = docSnap.data();
-        const option = document.createElement("option");
-        option.value = docSnap.id;
-        option.textContent = data.displayName || docSnap.id;
-        clientSelect.appendChild(option);
-    });
+  clientSelect.innerHTML = "<option value=''>Seleziona cliente...</option>";
+  const usersSnap = await getDocs(collection(db, "users"));
+  usersSnap.forEach(snap=>{
+    const data = snap.data();
+    const opt = document.createElement("option");
+    opt.value = snap.id;
+    opt.textContent = data.displayName || data.email || snap.id;
+    clientSelect.appendChild(opt);
+  });
+
+  clientSelect.addEventListener("change", ()=>{
+    const uid = clientSelect.value;
+    if(!uid) clientInfo.innerText = "";
+    else clientInfo.innerText = `Cliente selezionato: ${clientSelect.options[clientSelect.selectedIndex].text}`;
+  });
 }
-loadClients();
 
-// --- APRI MODALI ---
-addAdviceBtn.addEventListener("click", () => openModal(adviceModal));
-addRecipeBtn.addEventListener("click", () => openModal(recipeModal));
-
-// --- SALVA CONSIGLIO ---
-saveAdviceBtn.addEventListener("click", async () => {
-    const clientId = clientSelect.value;
-    if (!clientId || !adviceText.value.trim()) return alert("Seleziona cliente e scrivi consiglio");
-    await setDoc(doc(db, "advices", `${clientId}-${Date.now()}`), {
-        text: adviceText.value,
-        clientId,
-        approved: true,
-        createdAt: Date.now()
-    });
-    adviceText.value = "";
-    closeModal(adviceModal);
-    alert("Consiglio salvato!");
-});
-
-// --- SALVA RICETTA ---
-saveRecipeBtn.addEventListener("click", async () => {
-    const clientId = clientSelect.value;
-    if (!clientId || !recipeText.value.trim()) return alert("Seleziona cliente e scrivi ricetta");
-    await setDoc(doc(db, "recipes", `${clientId}-${Date.now()}`), {
-        text: recipeText.value,
-        clientId,
-        approved: true,
-        createdAt: Date.now()
-    });
-    recipeText.value = "";
-    closeModal(recipeModal);
-    alert("Ricetta salvata!");
-});
-
-// --- UPLOAD FOTO CLIENTE ---
-uploadPhotoBtn.addEventListener("click", async () => {
-    const clientId = clientSelect.value;
-    if (!clientId || !photoUpload.files[0]) return alert("Seleziona cliente e foto");
-    const file = photoUpload.files[0];
-    const token = await auth.currentUser.getIdToken(); // Firebase Auth token
-    try {
-        const res = await fetch(`https://gino.personaltrainergustavo1.workers.dev/upload`, {
-            method: "PUT",
-            headers: {
-                "Authorization": `Bearer ${token}`,
-                "Content-Type": file.type
-            },
-            body: file
-        });
-        const data = await res.json();
-        if (data.success) {
-            uploadFeedback.innerText = "Foto caricata con successo!";
-        } else {
-            uploadFeedback.innerText = "Errore durante upload";
+// -------------------------- ADVICE CRUD --------------------------
+async function loadAdvices(){
+  advicesAdminList.innerHTML = "";
+  const advRef = collection(db, "advices");
+  const advSnap = await getDocs(query(advRef, orderBy("createdAt", "desc")));
+  advSnap.forEach(docSnap=>{
+    const d = docSnap.data();
+    const id = docSnap.id;
+    const row = document.createElement("div");
+    row.className = "list-row";
+    row.innerHTML = `
+      <div class="list-left"><strong>${d.title || "(no title)"}</strong><div class="muted">${d.text}</div></div>
+      <div class="list-right">
+        <button class="small" data-id="${id}" data-action="toggle">${d.approved ? "Unpublish":"Approve"}</button>
+        <button class="small danger" data-id="${id}" data-action="delete">Delete</button>
+      </div>
+    `;
+    advicesAdminList.appendChild(row);
+  });
+  // bind events
+  advicesAdminList.querySelectorAll("button").forEach(b=>{
+    b.addEventListener("click", async (e)=>{
+      const id = b.getAttribute("data-id");
+      const action = b.getAttribute("data-action");
+      if(action === "toggle"){
+        const ref = doc(db, "advices", id);
+        const snap = await getDocs(query(collection(db,"advices"), where("__name__","==",id)));
+        // simply flip approved
+        // better: fetch doc, then update
+        try{
+          // read to know current
+          const docSnap = (await getDocs(doc(db,"advices",id))).docs?.[0];
+        }catch(e){}
+        // do optimistic update
+        // Use updateDoc would be better but we will set approved to opposite
+        const dref = doc(db,"advices",id);
+        const current = (await importDocData(dref));
+        if(current) {
+          await updateDoc(dref, { approved: !current.approved });
+          loadAdvices();
         }
-    } catch (err) {
-        console.error(err);
-        uploadFeedback.innerText = "Errore durante upload";
-    }
+      } else if(action === "delete"){
+        if(!confirm("Eliminare questo consiglio?")) return;
+        await deleteDoc(doc(db,"advices",id));
+        loadAdvices();
+      }
+    });
+  });
+}
+
+// -------------------------- RECIPE CRUD --------------------------
+async function loadRecipes(){
+  recipesAdminList.innerHTML = "";
+  const ref = collection(db,"recipes");
+  const snap = await getDocs(query(ref, orderBy("createdAt", "desc")));
+  snap.forEach(docSnap=>{
+    const d = docSnap.data();
+    const id = docSnap.id;
+    const row = document.createElement("div");
+    row.className = "list-row";
+    row.innerHTML = `
+      <div class="list-left"><strong>${d.title || "(no title)"}</strong><div class="muted">${d.text}</div></div>
+      <div class="list-right">
+        <button class="small" data-id="${id}" data-action="toggle">${d.approved ? "Unpublish":"Approve"}</button>
+        <button class="small danger" data-id="${id}" data-action="delete">Delete</button>
+      </div>
+    `;
+    recipesAdminList.appendChild(row);
+  });
+
+  recipesAdminList.querySelectorAll("button").forEach(b=>{
+    b.addEventListener("click", async ()=>{
+      const id = b.getAttribute("data-id");
+      const action = b.getAttribute("data-action");
+      if(action==="toggle"){
+        const dref = doc(db,"recipes",id);
+        const current = await importDocData(dref);
+        if(current) {
+          await updateDoc(dref, { approved: !current.approved });
+          loadRecipes();
+        }
+      } else if(action==="delete"){
+        if(!confirm("Eliminare questa ricetta?")) return;
+        await deleteDoc(doc(db,"recipes",id));
+        loadRecipes();
+      }
+    });
+  });
+}
+
+// helper: read a single doc (Firestore modular doesn't have simple getDoc import used earlier)
+async function importDocData(ref){
+  try{
+    const { getDoc } = await import("https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js");
+    const snap = await getDoc(ref);
+    return snap.exists() ? snap.data() : null;
+  }catch(e){
+    console.error(e);
+    return null;
+  }
+}
+
+// -------------------------- ADD NEW ADVICE / RECIPE --------------------------
+addAdviceBtn.addEventListener("click", ()=> {
+  adviceTitle.value = "";
+  adviceBody.value = "";
+  adviceApproved.checked = false;
+  openModal("modalAdvice");
 });
+saveAdviceBtn.addEventListener("click", async ()=>{
+  const clientId = clientSelect.value || null;
+  if(!adviceBody.value.trim()) { alert("Inserisci il testo del consiglio."); return; }
+  const id = `adm-${Date.now()}`;
+  await setDoc(doc(db,"advices",id), {
+    title: adviceTitle.value || "",
+    text: adviceBody.value,
+    clientId,
+    approved: !!adviceApproved.checked,
+    createdAt: Date.now()
+  });
+  closeModal("modalAdvice");
+  loadAdvices();
+});
+
+addRecipeBtn.addEventListener("click", ()=>{
+  recipeTitle.value = "";
+  recipeBody.value = "";
+  recipeApproved.checked = false;
+  openModal("modalRecipe");
+});
+saveRecipeBtn.addEventListener("click", async ()=>{
+  const clientId = clientSelect.value || null;
+  if(!recipeBody.value.trim()) { alert("Inserisci il testo della ricetta."); return; }
+  const id = `admrec-${Date.now()}`;
+  await setDoc(doc(db,"recipes",id), {
+    title: recipeTitle.value || "",
+    text: recipeBody.value,
+    clientId,
+    approved: !!recipeApproved.checked,
+    createdAt: Date.now()
+  });
+  closeModal("modalRecipe");
+  loadRecipes();
+});
+
+// -------------------------- UPLOAD FOTO (to Worker -> R2) --------------------------
+uploadPhotoBtn.addEventListener("click", async ()=>{
+  const clientId = clientSelect.value;
+  if(!clientId) { alert("Seleziona un cliente."); return; }
+  const file = photoUpload.files[0];
+  if(!file) { alert("Seleziona una foto."); return; }
+
+  // require login token for worker auth
+  const user = auth.currentUser;
+  if(!user) { alert("Utente non autenticato"); return; }
+  const token = await user.getIdToken();
+
+  try {
+    uploadFeedback.innerText = "Caricamento in corso...";
+    const res = await fetch(WORKER_UPLOAD_URL + `?clientId=${encodeURIComponent(clientId)}`, {
+      method: "PUT",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": file.type
+      },
+      body: file
+    });
+    if(!res.ok) throw new Error("Upload failed");
+    const json = await res.json();
+    if(json && json.key){
+      // salva riferimento in Firestore users/{clientId}/photos
+      const photoId = `photo-${Date.now()}`;
+      await setDoc(doc(db, `users/${clientId}/photos/${photoId}`), {
+        key: json.key,
+        url: json.publicUrl || json.url || `${WORKER_UPLOAD_URL.replace("/upload","/photo")}/${json.key}`,
+        createdAt: Date.now()
+      });
+      uploadFeedback.innerText = "Upload completato!";
+      photoUpload.value = "";
+    } else {
+      uploadFeedback.innerText = "Upload completato ma risposta Worker mancante.";
+    }
+  } catch(err) {
+    console.error(err);
+    uploadFeedback.innerText = "Errore durante upload.";
+  }
+});
+
+// -------------------------- INIZIALIZZAZIONE UTILE --------------------------
+(async function init(){
+  // mostra admin email se già loggato (potrebbe essere vuoto fino a onAuthStateChanged)
+})();

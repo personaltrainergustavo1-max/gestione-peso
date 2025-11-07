@@ -1,142 +1,55 @@
-<!doctype html>
-<html lang="it" data-theme="">
+<!DOCTYPE html>
+<html lang="it">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>CoachPro • Dashboard</title>
-  <link rel="stylesheet" href="styles.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Cliente</title>
+<link rel="stylesheet" href="styles.css">
+<script type="module" src="api.js"></script>
+<script type="module" src="main.js"></script>
 </head>
-<body>
-  <div class="wrap">
-    <header class="header">
-      <div class="brand">
-        <div class="logo">CP</div>
-        <div>
-          <div id="appTitle" class="title">CoachPro</div>
-          <div id="appSub" class="subtitle">Gestione Peso & Progressi</div>
-        </div>
-      </div>
+<body class="theme-light">
 
-      <div class="controls" role="navigation" aria-label="controls">
-        <select id="lang" aria-label="Language">
-          <option value="it">IT</option>
-          <option value="en">EN</option>
-        </select>
+<header>
+  <h1 data-i18n="dashboard_title">La Mia Dashboard</h1>
+  <div class="controls">
+    <button id="toggle-theme" data-i18n="toggle_theme">Tema</button>
+    <select id="lang-select">
+      <option value="it">IT</option>
+      <option value="en">EN</option>
+    </select>
+  </div>
+</header>
 
-        <button id="themeToggle" class="btn-ghost" aria-pressed="false" title="Theme toggle">🌗</button>
-
-        <div id="authWrap" class="auth-wrap">
-          <button id="btnLogin" class="btn">Accedi</button>
-          <button id="btnLogout" class="btn-ghost" style="display:none">Esci</button>
-        </div>
-      </div>
-    </header>
-
-    <!-- Login card -->
-    <div id="loginCard" class="card center" role="region" aria-labelledby="welcomeTitle">
-      <h2 id="welcomeTitle">Benvenuto</h2>
-      <p id="welcomeSub" class="small">Accedi con Google per iniziare</p>
-      <div style="margin-top:12px">
-        <button id="quickSignIn" class="btn">Accedi con Google</button>
-      </div>
-    </div>
-
-    <!-- Dashboard -->
-    <main id="dashboard" style="display:none" aria-live="polite">
-      <div class="row top-row">
-        <aside class="card sidebar">
-          <div class="userbox">
-            <img id="userPhoto" class="avatar" src="" alt="">
-            <div>
-              <div id="userName" class="strong">—</div>
-              <div id="userEmail" class="small">—</div>
-            </div>
-          </div>
-
-          <hr>
-
-          <div class="small">Sezioni</div>
-          <div class="menu" id="menu" role="tablist">
-            <button data-panel="weight" class="active" role="tab" aria-selected="true">📊 Andamento</button>
-            <button data-panel="photos" role="tab" aria-selected="false">📸 Foto</button>
-            <button data-panel="advices" role="tab" aria-selected="false">🥗 Consigli</button>
-            <button data-panel="recipes" role="tab" aria-selected="false">👨‍🍳 Ricette</button>
-            <button data-panel="assistant" role="tab" aria-selected="false">💬 Assistente</button>
-          </div>
-
-          <div style="margin-top:12px" class="small">
-            <div id="themeInfo">Tema: automatico (system)</div>
-          </div>
-        </aside>
-
-        <section class="card maincard" id="panelContainer">
-          <!-- Weight panel -->
-          <section id="panel-weight" class="panel">
-            <div class="panel-head">
-              <div>
-                <h3 id="panelTitle">Andamento Peso</h3>
-                <div id="panelSubtitle" class="small">Trend & stima obiettivo</div>
-              </div>
-              <div class="inline-form">
-                <label class="small" for="weightInput">Peso (kg)</label>
-                <input id="weightInput" type="number" inputmode="decimal" min="0" step="0.1" placeholder="es. 72.5">
-                <button id="saveWeight" class="btn">Salva</button>
-              </div>
-            </div>
-
-            <div class="chart-wrap">
-              <canvas id="chart" height="140" aria-label="Chart andamento peso"></canvas>
-            </div>
-
-            <div class="panel-actions">
-              <button id="openChartDetail" class="btn-ghost">Apri grafico completo</button>
-              <div id="eta" class="small"></div>
-            </div>
-          </section>
-
-          <!-- Photos panel -->
-          <section id="panel-photos" class="panel" style="display:none">
-            <h3>Foto Progresso</h3>
-            <div class="upload-row">
-              <input id="photoFile" type="file" accept="image/*">
-              <button id="uploadBtn" class="btn">Carica</button>
-            </div>
-            <div id="photosGrid" class="grid" aria-live="polite"></div>
-          </section>
-
-          <!-- Advices panel -->
-          <section id="panel-advices" class="panel" style="display:none">
-            <h3>Consigli alimentari</h3>
-            <div id="advicesList" class="list">—</div>
-          </section>
-
-          <!-- Recipes panel -->
-          <section id="panel-recipes" class="panel" style="display:none">
-            <h3>Ricette suggerite</h3>
-            <div id="recipesList" class="list">—</div>
-          </section>
-
-          <!-- Assistant -->
-          <section id="panel-assistant" class="panel" style="display:none">
-            <h3>Assistente</h3>
-            <textarea id="aiQ" rows="3" placeholder="Fai una domanda..."></textarea>
-            <div style="margin-top:8px;display:flex;gap:8px;">
-              <button id="aiAsk" class="btn">Invia</button>
-              <button id="aiClear" class="btn-ghost">Pulisci</button>
-            </div>
-            <div id="aiOut" class="small" style="margin-top:10px;white-space:pre-wrap"></div>
-          </section>
-        </section>
-      </div>
-
-      <footer class="footer">© 2025 CoachPro</footer>
-    </main>
-
-    <!-- Modal root for chart/photo -->
-    <div id="modalRoot" class="modal-root" style="display:none" aria-hidden="true"></div>
+<main class="dashboard">
+  <div class="card" id="card-weight">
+    <h2 data-i18n="weight_progress">Andamento Peso</h2>
+    <canvas id="weight-chart"></canvas>
   </div>
 
-  <script type="module" src="script.js"></script>
+  <div class="card" id="card-photos">
+    <h2 data-i18n="progress_photos">Foto Progressi</h2>
+    <div id="photos-container"></div>
+  </div>
+
+  <div class="card" id="card-advices">
+    <h2 data-i18n="advices">Consigli Alimentari</h2>
+    <ul id="advices-list"></ul>
+  </div>
+
+  <div class="card" id="card-recipes">
+    <h2 data-i18n="recipes">Ricette</h2>
+    <ul id="recipes-list"></ul>
+  </div>
+</main>
+
+<!-- Modal grafico/foto -->
+<div id="modal" class="modal">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
 </body>
 </html>

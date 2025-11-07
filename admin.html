@@ -4,251 +4,62 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>CoachPro — Admin</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
-  <style>
-    :root{ --bg:#f4f6f8; --card:#fff; --text:#102; --accent:#0ea5ff; --radius:12px; --shadow: 0 8px 24px rgba(10,20,30,0.06); }
-    [data-theme="dark"]{ --bg:#07121a; --card:#0b1a23; --text:#e6f3fb; --accent:#7dd3fc; --shadow: 0 10px 30px rgba(0,0,0,0.4); }
-    body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui;padding:18px}
-    .wrap{max-width:1100px;margin:0 auto}
-    header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
-    .card{background:var(--card);padding:12px;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:12px}
-    .grid{display:grid;grid-template-columns:1fr 360px;gap:12px}
-    .small{font-size:13px;color:gray}
-    button{background:var(--accent);color:#022;padding:8px 10px;border-radius:8px;border:0;cursor:pointer}
-    .btn-ghost{background:transparent;border:1px solid rgba(0,0,0,0.08);padding:8px;border-radius:8px}
-    .list{max-height:360px;overflow:auto}
-    select,input,textarea{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);margin-top:6px}
-    .row{display:flex;gap:8px}
-    @media(max-width:920px){ .grid{grid-template-columns:1fr} }
-    /* keyboard focus */
-    :focus{outline:none;box-shadow:0 0 0 4px rgba(14,165,233,0.12)}
-    /* small animations */
-    .fade-in{animation: fadeIn .22s ease}
-    @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-  </style>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="wrap" role="main">
-    <header>
+  <div class="wrap">
+    <header class="header">
       <div>
         <h2>CoachPro — Admin</h2>
-        <div class="small">Gestisci consigli e ricette — assegna ai clienti</div>
+        <div class="small">Crea e assegna consigli/ricette ai clienti</div>
       </div>
-      <div>
-        <button id="themeToggle">🌗</button>
-        <button id="btnLogin">Login</button>
-        <button id="btnLogout" style="display:none" class="btn-ghost">Logout</button>
+      <div class="controls">
+        <button id="adminThemeToggle" class="btn-ghost">🌗</button>
+        <div id="adminAuth" class="auth-wrap">
+          <button id="adminLogin" class="btn">Login</button>
+          <button id="adminLogout" class="btn-ghost" style="display:none">Logout</button>
+        </div>
       </div>
     </header>
 
-    <div class="grid">
-      <div>
-        <div class="card">
-          <h3>Nuovo consiglio / ricetta</h3>
-          <form id="createForm" aria-label="Create advice or recipe">
-            <label for="kind">Tipo</label>
-            <select id="kind" aria-label="Tipo">
-              <option value="advices">Consiglio</option>
-              <option value="recipes">Ricetta</option>
-            </select>
+    <main class="grid-admin">
+      <section class="card">
+        <h3>Nuovo elemento</h3>
+        <form id="createForm">
+          <label>Tipo</label>
+          <select id="kind">
+            <option value="advices">Consiglio</option>
+            <option value="recipes">Ricetta</option>
+          </select>
 
-            <label for="title">Titolo</label>
-            <input id="title" placeholder="Titolo breve" />
+          <label>Titolo</label>
+          <input id="title" placeholder="Titolo">
 
-            <label for="text">Testo / contenuto</label>
-            <textarea id="text" rows="5" placeholder="Descrizione..."></textarea>
+          <label>Testo</label>
+          <textarea id="text" rows="6"></textarea>
 
-            <label for="clientSelect">Assegna a (cliente)</label>
-            <select id="clientSelect" aria-label="Seleziona cliente"><option value="all">Tutti</option></select>
+          <label>Assegna a (cliente)</label>
+          <select id="clientSelect"><option value="all">Tutti</option></select>
 
-            <div class="row" style="margin-top:10px">
-              <button id="saveDraft">Salva bozza</button>
-              <button id="generateAI" type="button" class="btn-ghost">Genera con AI</button>
-            </div>
-          </form>
-        </div>
-
-        <div class="card">
-          <h3>Bozze</h3>
-          <div class="small">Filtra per cliente:</div>
-          <select id="filterClient" aria-label="Filter by client" style="margin-top:6px;margin-bottom:8px"><option value="all">Tutti</option></select>
-          <div id="draftsList" class="list" aria-live="polite">Caricamento...</div>
-        </div>
-      </div>
-
-      <div>
-        <div class="card">
-          <h3>Clienti</h3>
-          <div class="small">Seleziona un cliente per vedere i suoi dati</div>
-          <div id="clientsList" class="list" style="margin-top:8px">Caricamento...</div>
-        </div>
-
-        <div class="card">
-          <h3>Ricerca / Azioni</h3>
-          <div class="small">Quick actions</div>
-          <div style="margin-top:8px;display:flex;gap:8px">
-            <button id="refreshBtn" class="btn-ghost">Aggiorna</button>
-            <button id="exportBtn" class="btn-ghost">Esporta (CSV)</button>
+          <div style="margin-top:10px;display:flex;gap:8px;">
+            <button id="saveDraft" class="btn">Salva bozza</button>
+            <button id="generateAI" type="button" class="btn-ghost">Genera con AI</button>
           </div>
-        </div>
-      </div>
-    </div>
+        </form>
+      </section>
+
+      <aside class="card">
+        <h3>Clienti</h3>
+        <div id="clientsList" class="list">Caricamento...</div>
+        <hr>
+        <h3>Bozze / Pubblicati</h3>
+        <label class="small">Filtra per cliente</label>
+        <select id="filterClient"><option value="all">Tutti</option></select>
+        <div id="draftsList" class="list">Caricamento...</div>
+      </aside>
+    </main>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, collection, getDocs, addDoc, updateDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-    const FIREBASE_CONFIG = {
-      apiKey: "AIzaSyCE3yccgXo00Up-iekaAdgffOo_YyqXNuE",
-      authDomain: "gestione-peso-1d758.firebaseapp.com",
-      projectId: "gestione-peso-1d758",
-      storageBucket: "gestione-peso-1d758.firebasestorage.app",
-      messagingSenderId: "121949363903",
-      appId: "1:121949363903:web:4eb5f5a7131109ea8bb00a"
-    };
-    const app = initializeApp(FIREBASE_CONFIG);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    const provider = new GoogleAuthProvider();
-
-    // UI elements
-    const btnLogin = document.getElementById('btnLogin'), btnLogout = document.getElementById('btnLogout');
-    const clientSelect = document.getElementById('clientSelect'), filterClient = document.getElementById('filterClient');
-    const clientsList = document.getElementById('clientsList'), draftsList = document.getElementById('draftsList');
-    const createForm = document.getElementById('createForm'), saveDraft = document.getElementById('saveDraft'), generateAI = document.getElementById('generateAI');
-    const kindEl = document.getElementById('kind'), titleEl = document.getElementById('title'), textEl = document.getElementById('text');
-    const refreshBtn = document.getElementById('refreshBtn');
-
-    let currentUser = null;
-
-    // Theme toggle
-    document.getElementById('themeToggle').addEventListener('click', ()=>{
-      const cur = document.documentElement.getAttribute('data-theme') || 'light';
-      const next = cur === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', next);
-    });
-
-    btnLogin.onclick = async ()=> {
-      try {
-        const res = await signInWithPopup(auth, provider);
-      } catch(e){ console.error(e); alert(e.message || e); }
-    };
-    btnLogout.onclick = async ()=> { await signOut(auth); };
-
-    onAuthStateChanged(auth, async user => {
-      if(!user){ btnLogin.style.display='inline-block'; btnLogout.style.display='none'; clientsList.innerHTML='Login required'; return; }
-      currentUser = user;
-      btnLogin.style.display='none'; btnLogout.style.display='inline-block';
-      // load clients into select & list
-      await loadClientsUI();
-      await loadDraftsUI();
-    });
-
-    async function loadClientsUI(){
-      clientSelect.innerHTML = '<option value="all">Tutti</option>';
-      filterClient.innerHTML = '<option value="all">Tutti</option>';
-      clientsList.innerHTML = '';
-      const q = query(collection(db,'users'), orderBy('email','asc'));
-      const snap = await getDocs(q);
-      if(snap.empty){ clientsList.innerHTML = '<div class="small">Nessun cliente</div>'; return; }
-      snap.forEach(d=>{
-        const data = d.data();
-        const id = d.id;
-        const label = data.name || data.email || id;
-        // add to selects
-        const o1 = document.createElement('option'); o1.value = id; o1.textContent = label; clientSelect.appendChild(o1);
-        const o2 = document.createElement('option'); o2.value = id; o2.textContent = label; filterClient.appendChild(o2);
-        // add to client list
-        const row = document.createElement('div'); row.className='small fade-in';
-        row.innerHTML = `<strong>${label}</strong><div class="small">${data.email||''}</div>`;
-        row.style.padding='8px'; row.tabIndex=0;
-        row.onclick = ()=> { filterClient.value = id; renderDraftsForFilter(); };
-        clientsList.appendChild(row);
-      });
-    }
-
-    async function loadDraftsUI(){
-      draftsList.innerHTML = 'Caricamento...';
-      renderDraftsForFilter();
-    }
-
-    async function renderDraftsForFilter(){
-      const f = filterClient.value || 'all';
-      draftsList.innerHTML = '';
-      // load advices + recipes (both)
-      const advSnap = await getDocs(query(collection(db,'advices'), orderBy('createdAt','desc')));
-      const recSnap = await getDocs(query(collection(db,'recipes'), orderBy('createdAt','desc')));
-      const items = [];
-      advSnap.forEach(d => items.push({ id:d.id, kind:'advices', data:d.data() }));
-      recSnap.forEach(d => items.push({ id:d.id, kind:'recipes', data:d.data() }));
-      items.sort((a,b)=> (b.data?.createdAt?.seconds||0) - (a.data?.createdAt?.seconds||0));
-      if(items.length===0){ draftsList.innerHTML = '<div class="small">Nessuna bozza</div>'; return; }
-      items.forEach(it=>{
-        const assigned = it.data.assignedTo || 'all';
-        // for filter: show only items assigned to the selected filter OR all
-        if(f !== 'all' && assigned !== 'all' && assigned !== f) return;
-        const div = document.createElement('div'); div.className='card fade-in';
-        div.style.marginBottom='8px';
-        const title = it.data.title || (it.data.food||'Elemento');
-        const text = (it.data.text || it.data.generatedText || '').slice(0,220);
-        const status = it.data.approved ? '<span style="color:green">✅ Pubblicata</span>' : '<span style="color:orange">🕓 Bozza</span>';
-        const assignLabel = assigned==='all' ? 'Tutti' : assigned;
-        div.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${title}</strong><div class="small">${assignLabel}</div></div><div>${status}</div></div><p class="small">${text}</p>`;
-        // actions
-        const actions = document.createElement('div'); actions.style.display='flex'; actions.style.gap='8px';
-        const approveBtn = document.createElement('button'); approveBtn.textContent='Approva & Pubblica';
-        approveBtn.onclick = async ()=> {
-          await updateDoc(doc(db, it.kind, it.id), { approved: true });
-          alert('Pubblicato');
-          renderDraftsForFilter();
-        };
-        const editBtn = document.createElement('button'); editBtn.className='btn-ghost'; editBtn.textContent='Modifica';
-        editBtn.onclick = ()=> {
-          // fill form for editing
-          kindEl.value = it.kind;
-          titleEl.value = it.data.title || it.data.food || '';
-          textEl.value = it.data.text || it.data.generatedText || '';
-          clientSelect.value = it.data.assignedTo || 'all';
-          window.scrollTo({ top: 0, behavior:'smooth' });
-        };
-        actions.appendChild(approveBtn); actions.appendChild(editBtn);
-        div.appendChild(actions);
-        draftsList.appendChild(div);
-      });
-    }
-
-    // Save draft
-    saveDraft.onclick = async (e)=> {
-      e.preventDefault();
-      const kind = kindEl.value, title = titleEl.value.trim(), text = textEl.value.trim(), assigned = clientSelect.value || 'all';
-      if(!title || !text) return alert('Inserisci titolo e testo');
-      await addDoc(collection(db, kind), { title, text, assignedTo: assigned, approved:false, author: currentUser.email, createdAt: new Date() });
-      titleEl.value = ''; textEl.value = ''; clientSelect.value='all';
-      alert('Bozza salvata');
-      renderDraftsForFilter();
-    };
-
-    // AI generation (uses Worker)
-    generateAI.onclick = async ()=> {
-      const kind = kindEl.value, food = titleEl.value || 'ingredient';
-      generateAI.disabled = true; generateAI.textContent = 'Generating...';
-      try {
-        const prompt = kind==='recipes' ? `Crea 5 ricette semplici usando "${food}". Titolo, ingredienti brevi, istruzioni.` : `Genera un consiglio alimentare professionale per "${food}". Titolo e descrizione pratica.`;
-        const res = await fetch('/api/chat', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ messages:[{ role:'user', content: prompt }] }) });
-        const j = await res.json();
-        const text = j.choices?.[0]?.message?.content || j.choices?.[0]?.text || JSON.stringify(j);
-        textEl.value = text;
-      } catch(e){ alert('AI error: ' + (e.message||e)); }
-      generateAI.disabled = false; generateAI.textContent='Genera con AI';
-    };
-
-    // Refresh
-    refreshBtn.onclick = async ()=> { await loadClientsUI(); renderDraftsForFilter(); };
-
-    // initial - nothing else
-
-  </script>
+  <script type="module" src="script.js"></script>
 </body>
 </html>

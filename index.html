@@ -1,169 +1,535 @@
 <!doctype html>
-<html lang="it">
+<html lang="it" data-theme="">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>CoachPro — Dashboard</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CoachPro • Dashboard</title>
+
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#f5f7fb; --card:#ffffff; --text:#0b2540; --muted:#5b6b77; --accent:#0ea5ff;
+      --accent-2:#14b8ff; --success:#16a34a; --danger:#ef4444; --radius:14px;
+      --glass: rgba(255,255,255,0.6);
+      --card-shadow: 0 8px 24px rgba(10,20,30,0.06);
+      --transition: 220ms cubic-bezier(.2,.9,.3,1);
+    }
+    /* Night palette */
+    [data-theme="dark"]{
+      --bg:#07121a; --card:#0b1a23; --text:#e6f3fb; --muted:#8aa3b2; --accent:#7dd3fc;
+      --accent-2:#60a5fa; --glass: rgba(10,20,30,0.6); --card-shadow: 0 8px 24px rgba(0,0,0,0.45);
+    }
+
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+    .wrap{max-width:1100px;margin:20px auto;padding:18px;}
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:#021;font-weight:800;box-shadow:var(--card-shadow)}
+    .title{font-weight:700;font-size:1.15rem}
+    .subtitle{font-size:0.85rem;color:var(--muted)}
+    .controls{display:flex;gap:10px;align-items:center}
+
+    .card{background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--card-shadow);transition:all var(--transition);border:1px solid rgba(0,0,0,0.03)}
+    .row{display:flex;gap:14px}
+    .col{flex:1;min-width:260px}
+    .btn{background:var(--accent);border:0;color:#022;padding:8px 12px;border-radius:10px;font-weight:700;cursor:pointer}
+    .btn-ghost{background:transparent;border:1px solid rgba(0,0,0,0.08);padding:8px 10px;border-radius:8px;cursor:pointer}
+    .small{font-size:13px;color:var(--muted)}
+    input,select,textarea{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);background:transparent;color:var(--text)}
+    .thumb{width:96px;height:96px;object-fit:cover;border-radius:8px;border:1px solid rgba(0,0,0,0.06)}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+    .menu{display:flex;gap:8px;flex-wrap:wrap}
+    .menu button{background:transparent;border-radius:10px;padding:8px 10px;border:1px solid rgba(0,0,0,0.06);cursor:pointer}
+    .menu button.active{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#012;border:0}
+
+    /* Modal */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;z-index:50}
+    .modal{width:calc(100% - 40px);max-width:880px;border-radius:12px;padding:18px;box-shadow:var(--card-shadow);background:var(--card)}
+
+    /* float photo preview */
+    .float-photo{position:fixed;pointer-events:none;z-index:60;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,0.45);width:220px;height:220px;object-fit:cover}
+
+    footer{text-align:center;margin-top:18px;color:var(--muted);font-size:13px}
+
+    /* small screens */
+    @media(max-width:920px){ .row{flex-direction:column} .logo{display:none} }
+  </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="header">
-      <div class="brand"><div class="logo">CP</div><div><div class="title">CoachPro</div><div class="small">Client Dashboard</div></div></div>
-      <div>
-        <select id="langSelect"></select>
-        <button id="themeBtn" class="btn-ghost">Theme</button>
-        <button id="btnLogin" class="btn">Login</button>
-        <button id="btnLogout" class="btn-ghost" style="display:none">Logout</button>
-      </div>
-    </div>
-
-    <div id="authNotice" class="card">Accedi per vedere la tua dashboard</div>
-
-    <div id="mainApp" style="display:none">
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div><strong id="greetName">—</strong><div class="small" id="greetEmail">—</div></div>
+    <header>
+      <div class="brand">
+        <div class="logo">CP</div>
+        <div>
+          <div class="title" id="appTitle">CoachPro</div>
+          <div class="subtitle" id="appSub">Gestione Peso & Progressi</div>
         </div>
       </div>
 
-      <div class="row">
-        <div class="col">
-          <div class="card">
-            <label class="small">Inserisci peso (kg)</label>
-            <input id="weightInput" type="number" placeholder="78.5" />
-            <div style="margin-top:8px;display:flex;gap:8px">
-              <button id="saveWeight" class="btn">Salva</button>
-              <input id="photoFile" type="file" accept="image/*" />
-              <button id="uploadPhoto" class="btn-ghost">Carica foto</button>
+      <div class="controls">
+        <select id="lang" title="Language">
+          <option value="it">IT</option><option value="en">EN</option>
+        </select>
+
+        <button id="themeToggle" class="btn-ghost" title="Theme">🌗</button>
+
+        <div id="authWrap" style="display:flex;gap:8px;align-items:center">
+          <button id="btnLogin" class="btn">Accedi</button>
+          <button id="btnLogout" class="btn-ghost" style="display:none">Esci</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- LOGIN CARD (shown when not logged) -->
+    <div id="loginCard" class="card" style="display:none">
+      <h3 id="welcomeTitle">Benvenuto</h3>
+      <p class="small" id="welcomeSub">Accedi con Google per iniziare</p>
+      <div style="display:flex;gap:10px;margin-top:12px">
+        <button id="quickSignIn" class="btn">Accedi con Google</button>
+      </div>
+    </div>
+
+    <!-- DASHBOARD (shown when logged) -->
+    <div id="dashboard" style="display:none">
+      <div class="row" style="margin-bottom:14px">
+        <div class="col card" style="min-width:260px;max-width:360px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <img id="userPhoto" src="" alt="user" style="width:72px;height:72px;border-radius:10px;object-fit:cover">
+            <div>
+              <div id="userName" style="font-weight:700">—</div>
+              <div class="small" id="userEmail">—</div>
             </div>
-            <div id="saveMsg" class="small"></div>
           </div>
 
-          <div class="card">
-            <h4>Andamento peso</h4>
-            <canvas id="weightChart" height="150"></canvas>
-            <div id="photoHover" style="position:relative"></div>
+          <hr style="margin:12px 0">
+
+          <div class="small" style="margin-bottom:6px" id="quickActionsLabel">Quick actions</div>
+          <div class="menu" id="menu">
+            <button data-panel="weight" class="active">📊 Andamento</button>
+            <button data-panel="photos">📸 Foto</button>
+            <button data-panel="advices">🥗 Consigli</button>
+            <button data-panel="recipes">👨‍🍳 Ricette</button>
+            <button data-panel="assistant">💬 Assistente</button>
+          </div>
+
+          <div style="margin-top:12px">
+            <label class="small">Tema (auto)</label>
+            <div class="small">Il tema si adatta al sistema; usa il pulsante per override.</div>
           </div>
         </div>
 
-        <div class="col">
-          <div class="card">
-            <h4>Consigli alimentari</h4>
-            <div id="advicesList" class="small">—</div>
-          </div>
+        <div class="col card" style="flex:2">
+          <!-- dynamic panel container -->
+          <div id="panelContainer">
+            <!-- default: weight summary -->
+            <div id="panel-weight">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div>
+                  <h3 id="panelTitle">Andamento Peso</h3>
+                  <div class="small" id="panelSubtitle">Trend & stima obiettivo</div>
+                </div>
+                <div>
+                  <input id="weightInput" placeholder="Peso kg" type="number" style="width:120px;margin-right:8px">
+                  <button id="saveWeight" class="btn">Salva</button>
+                </div>
+              </div>
 
-          <div class="card">
-            <h4>Ricette consigliate</h4>
-            <div id="recipesList" class="small">—</div>
+              <div style="margin-top:12px">
+                <canvas id="chart" height="140"></canvas>
+              </div>
+
+              <div style="margin-top:10px;display:flex;gap:10px;align-items:center">
+                <button id="openChartDetail" class="btn-ghost">Apri grafico completo</button>
+                <div id="eta" class="small"></div>
+              </div>
+            </div>
+
+            <div id="panel-photos" style="display:none">
+              <h3>Foto Progresso</h3>
+              <div style="margin-top:8px;display:flex;gap:10px;align-items:center">
+                <input id="photoFile" type="file" accept="image/*">
+                <button id="uploadBtn" class="btn">Carica</button>
+              </div>
+
+              <div id="photosGrid" style="margin-top:12px" class="grid"></div>
+            </div>
+
+            <div id="panel-advices" style="display:none">
+              <h3>Consigli alimentari</h3>
+              <div id="advicesList" class="small" style="margin-top:8px">—</div>
+            </div>
+
+            <div id="panel-recipes" style="display:none">
+              <h3>Ricette suggerite</h3>
+              <div id="recipesList" class="small" style="margin-top:8px">—</div>
+            </div>
+
+            <div id="panel-assistant" style="display:none">
+              <h3>Assistente</h3>
+              <textarea id="aiQ" rows="3" placeholder="Fai una domanda..." style="margin-top:8px"></textarea>
+              <div style="display:flex;gap:8px;margin-top:8px">
+                <button id="aiAsk" class="btn">Invia</button>
+                <button id="aiClear" class="btn-ghost">Pulisci</button>
+              </div>
+              <div id="aiOut" class="small" style="margin-top:10px;white-space:pre-wrap"></div>
+            </div>
           </div>
         </div>
       </div>
+
+      <footer>© 2025 CoachPro</footer>
     </div>
 
-    <footer class="small">© CoachPro</footer>
+    <!-- Modal (details view) -->
+    <div id="modalRoot" style="display:none"></div>
   </div>
 
   <script type="module">
-    import * as S from "./script.js";
+  // ---------------- CONFIG ----------------
+  const WORKER_URL = "https://gino.personaltrainergustavo1.workers.dev"; // your worker
+  const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyCE3yccgXo00Up-iekaAdgffOo_YyqXNuE",
+    authDomain: "gestione-peso-1d758.firebaseapp.com",
+    projectId: "gestione-peso-1d758",
+    storageBucket: "gestione-peso-1d758.firebasestorage.app",
+    messagingSenderId: "121949363903",
+    appId: "1:121949363903:web:4eb5f5a7131109ea8bb00a",
+    measurementId: "G-WGBB30D5FK"
+  };
 
-    // UI elements
-    const btnLogin = document.getElementById("btnLogin"), btnLogout = document.getElementById("btnLogout");
-    const authNotice = document.getElementById("authNotice"), mainApp = document.getElementById("mainApp");
-    const greetName = document.getElementById("greetName"), greetEmail = document.getElementById("greetEmail");
-    const weightInput = document.getElementById("weightInput"), saveWeightBtn = document.getElementById("saveWeight");
-    const saveMsg = document.getElementById("saveMsg");
-    const uploadPhotoBtn = document.getElementById("uploadPhoto"), photoFile = document.getElementById("photoFile");
-    const advicesList = document.getElementById("advicesList"), recipesList = document.getElementById("recipesList");
+  // ---------------- IMPORT FIREBASE ----------------
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+  import {
+    getFirestore, collection, doc, setDoc, addDoc, getDocs, query, where, orderBy, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // theme + lang quick init
-    const langSelect = document.getElementById("langSelect"), themeBtn = document.getElementById("themeBtn");
-    ["it","en"].forEach(l => { const o=document.createElement("option"); o.value=l; o.textContent=l.toUpperCase(); langSelect.appendChild(o); });
-    langSelect.value = localStorage.getItem("cp_lang") || "it";
-    langSelect.onchange = ()=> localStorage.setItem("cp_lang", langSelect.value);
-    themeBtn.onclick = ()=> {
-      const cur = document.documentElement.getAttribute("data-theme") || "light";
-      const next = cur==="dark" ? "light" : "dark";
-      document.documentElement.setAttribute("data-theme", next); localStorage.setItem("cp_theme", next);
-    };
+  const app = initializeApp(FIREBASE_CONFIG);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const provider = new GoogleAuthProvider();
 
-    // chart
-    let chart = null, photosCache = [];
+  // ---------------- UI ELEMENTS ----------------
+  const langEl = document.getElementById('lang');
+  const themeBtn = document.getElementById('themeToggle');
+  const loginBtn = document.getElementById('btnLogin');
+  const quickSign = document.getElementById('quickSignIn');
+  const logoutBtn = document.getElementById('btnLogout');
+  const loginCard = document.getElementById('loginCard');
+  const dashboard = document.getElementById('dashboard');
+  const userPhoto = document.getElementById('userPhoto');
+  const userName = document.getElementById('userName');
+  const userEmail = document.getElementById('userEmail');
+  const menu = document.getElementById('menu');
+  const panelContainer = document.getElementById('panelContainer');
+  const photosGrid = document.getElementById('photosGrid');
+  const advicesList = document.getElementById('advicesList');
+  const recipesList = document.getElementById('recipesList');
+  const photoFile = document.getElementById('photoFile');
+  const uploadBtn = document.getElementById('uploadBtn');
+  const weightInput = document.getElementById('weightInput');
+  const saveWeightBtn = document.getElementById('saveWeight');
+  const chartEl = document.getElementById('chart');
+  const openChartDetail = document.getElementById('openChartDetail');
+  const aiQ = document.getElementById('aiQ');
+  const aiAsk = document.getElementById('aiAsk');
+  const aiOut = document.getElementById('aiOut');
+  const modalRoot = document.getElementById('modalRoot');
 
-    function renderChart(weights){
-      const labels = weights.map(w => new Date((w.ts?.seconds||0)*1000).toLocaleDateString());
-      const data = weights.map(w => w.value);
-      if(chart) { chart.data.labels = labels; chart.data.datasets[0].data = data; chart.update(); return; }
-      const ctx = document.getElementById("weightChart").getContext("2d");
+  // translations
+  const T = {
+    it: {
+      login: "Accedi con Google",
+      welcome: "Benvenuto",
+      weightPanel: "Andamento Peso",
+      photosPanel: "Foto Progresso",
+      advicesPanel: "Consigli alimentari",
+      recipesPanel: "Ricette suggerite",
+      assistantPanel: "Assistente",
+      uploadSuccess: "Foto caricata",
+      uploadFail: "Upload fallito",
+      saving: "Salvataggio..."
+    },
+    en: {
+      login: "Sign in with Google",
+      welcome: "Welcome",
+      weightPanel: "Weight Trend",
+      photosPanel: "Progress Photos",
+      advicesPanel: "Diet Tips",
+      recipesPanel: "Suggested Recipes",
+      assistantPanel: "Assistant",
+      uploadSuccess: "Photo uploaded",
+      uploadFail: "Upload failed",
+      saving: "Saving..."
+    }
+  };
+
+  // ---------------- THEME (auto + override) ----------------
+  // auto detect system
+  const savedTheme = localStorage.getItem('cp_theme');
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const initial = savedTheme || (prefersDark ? 'dark' : 'light');
+  document.documentElement.setAttribute('data-theme', initial);
+  themeBtn.textContent = initial === 'dark' ? '☀️' : '🌙';
+  themeBtn.addEventListener('click', () => {
+    const cur = document.documentElement.getAttribute('data-theme') || 'light';
+    const next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    themeBtn.textContent = next === 'dark' ? '☀️' : '🌙';
+    localStorage.setItem('cp_theme', next);
+  });
+
+  // ---------------- LANGUAGE ----------------
+  const savedLang = localStorage.getItem('cp_lang') || 'it';
+  langEl.value = savedLang;
+  applyLang(savedLang);
+  langEl.addEventListener('change', (e)=> { localStorage.setItem('cp_lang', e.target.value); applyLang(e.target.value); });
+
+  function applyLang(l){
+    document.getElementById('appTitle').textContent = l==='it' ? 'CoachPro' : 'CoachPro';
+    document.getElementById('appSub').textContent = l==='it' ? 'Gestione Peso & Progressi' : 'Weight & Progress Management';
+    document.getElementById('welcomeTitle').textContent = T[l].welcome;
+    document.getElementById('quickSignIn').textContent = T[l].login;
+    document.getElementById('panelTitle').textContent = l==='it' ? T[l].weightPanel : T[l].weightPanel;
+    document.getElementById('panelSubtitle').textContent = l==='it' ? 'Trend & stima obiettivo' : 'Trend & ETA to goal';
+  }
+
+  // ---------------- AUTH ----------------
+  loginBtn.addEventListener('click', ()=> signIn());
+  quickSign.addEventListener('click', ()=> signIn());
+  logoutBtn.addEventListener('click', async ()=> { await signOut(auth); });
+
+  async function signIn(){
+    try{
+      const res = await signInWithPopup(auth, provider);
+      const u = res.user;
+      // write user doc (merge)
+      await setDoc(doc(db,'users',u.uid), {
+        uid: u.uid,
+        name: u.displayName || "",
+        email: u.email || "",
+        photoURL: u.photoURL || "",
+        lastSeen: serverTimestamp()
+      }, { merge: true });
+    }catch(e){
+      console.error('signin', e);
+      alert(e.message || e);
+    }
+  }
+
+  // ---------------- AUTH STATE ----------------
+  let currentUser = null;
+  onAuthStateChanged(auth, async user => {
+    if(!user){
+      loginCard.style.display = 'block';
+      dashboard.style.display = 'none';
+      document.getElementById('authWrap').style.display='flex';
+      document.getElementById('btnLogout').style.display='none';
+      return;
+    }
+    currentUser = user;
+    loginCard.style.display = 'none';
+    dashboard.style.display = 'block';
+    document.getElementById('btnLogout').style.display='inline-block';
+    document.getElementById('btnLogin').style.display='none';
+    // populate UI
+    userPhoto.src = user.photoURL || "https://via.placeholder.com/96";
+    userName.textContent = user.displayName || "Client";
+    userEmail.textContent = user.email || "";
+    // load user data
+    await loadWeightsAndRender();
+    await loadPhotos();
+    await loadAdvices();
+    await loadRecipes();
+  });
+
+  // ---------------- MENU HANDLING ----------------
+  menu.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      menu.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const panel = btn.dataset.panel;
+      // show/hide panels
+      panelContainer.querySelectorAll('[id^="panel-"]').forEach(p => p.style.display = 'none');
+      const el = document.getElementById('panel-'+panel);
+      if(el) el.style.display = 'block';
+    });
+  });
+
+  // ---------------- CHART (weights) ----------------
+  let chart = null;
+  async function loadWeightsAndRender(){
+    if(!currentUser) return;
+    // fetch weights
+    const q = query(collection(db, 'users', currentUser.uid, 'weights'), orderBy('ts','asc'));
+    const snap = await getDocs(q);
+    const labs = [], data=[];
+    snap.forEach(d=>{
+      const v = d.data();
+      const date = v.ts ? new Date(v.ts.seconds*1000) : new Date();
+      labs.push(date.toLocaleDateString());
+      data.push(v.value);
+    });
+    renderChart(labs, data);
+  }
+
+  function renderChart(labels, data){
+    if(!chart){
+      const ctx = chartEl.getContext('2d');
       chart = new Chart(ctx, {
-        type: "line",
-        data: { labels, datasets: [{ label: "Peso (kg)", data, tension:0.25, borderColor:'#14b8ff', backgroundColor:'rgba(20,184,166,0.06)'}] },
+        type: 'line',
+        data: { labels, datasets: [{ label: 'Peso', data, tension:0.3, borderColor: getComputedStyle(document.documentElement).getPropertyValue('--accent'), fill:false }]},
         options: {
           responsive:true,
-          onHover: (evt, elements) => {
-            if(elements.length>0){ const idx = elements[0].index; showPhotoForIndex(idx, weights); } else hideHoverPhoto();
-          }
+          plugins:{tooltip:{enabled:true}},
+          scales:{y:{beginAtZero:false}}
         }
       });
+    } else {
+      chart.data.labels = labels; chart.data.datasets[0].data = data; chart.update();
     }
+  }
 
-    function showPhotoForIndex(index, weights){
-      const w = weights[index];
-      if(!w) return;
-      const tsMs = (w.ts?.seconds||0)*1000;
-      const p = S.findNearestPhotoForTs(photosCache, tsMs);
-      if(!p){ hideHoverPhoto(); return; }
-      let el = document.getElementById("floatPhoto");
-      if(!el){ el = document.createElement("img"); el.id="floatPhoto"; el.className="float-photo"; document.body.appendChild(el); }
-      el.src = p.url;
-      el.style.display = "block";
-      el.style.left = (window.innerWidth - 220) + "px";
-      el.style.top = "120px";
-    }
-    function hideHoverPhoto(){ const el=document.getElementById("floatPhoto"); if(el) el.style.display="none"; }
+  // save weight
+  saveWeightBtn.addEventListener('click', async ()=>{
+    if(!currentUser) return alert('login required');
+    const v = Number(weightInput.value);
+    if(!v) return alert('Inserisci valore');
+    await addDoc(collection(db,'users',currentUser.uid,'weights'), { value: v, ts: serverTimestamp() });
+    weightInput.value = '';
+    await loadWeightsAndRender();
+  });
 
-    // AUTH handlers
-    btnLogin.onclick = async ()=> { try{ await S.loginWithGoogle(); }catch(e){ alert(e.message || e); } };
-    btnLogout.onclick = async ()=> { await S.logout(); };
+  // open chart detail -> modal
+  openChartDetail.addEventListener('click', ()=>{
+    showModalChart();
+  });
 
-    S.auth.onAuthStateChanged(async user => {
-      if(!user){ authNotice.style.display="block"; mainApp.style.display="none"; btnLogin.style.display="inline-block"; btnLogout.style.display="none"; return; }
-      authNotice.style.display="none"; mainApp.style.display="block"; btnLogin.style.display="none"; btnLogout.style.display="inline-block";
-      greetName.textContent = user.displayName || "Client"; greetEmail.textContent = user.email || "";
-      // load data
-      const uid = user.uid;
-      const weights = await S.getUserWeights(uid);
-      photosCache = await S.getUserPhotos(uid);
-      renderChart(weights);
-      // advices + recipes approved
-      const adv = await S.getApprovedAdvices(); advicesList.innerHTML = adv.map(a=>`<div class="list-item"><div><strong>${a.title}</strong><div class="small">${a.category}</div></div></div>`).join('') || "—";
-      const rec = await S.getApprovedRecipes(); recipesList.innerHTML = rec.map(r=>`<div class="list-item"><div><strong>${r.food}</strong><div class="small">${(r.generatedText||'').slice(0,140)}...</div></div></div>`).join('') || "—";
+  // ---------------- PHOTOS ----------------
+  async function loadPhotos(){
+    photosGrid.innerHTML = '';
+    if(!currentUser) return;
+    const q = query(collection(db,'users',currentUser.uid,'photos'), orderBy('uploadedAt','desc'));
+    const snap = await getDocs(q);
+    const arr = [];
+    snap.forEach(d => arr.push(d.data()));
+    // populate grid
+    if(arr.length===0) photosGrid.innerHTML = '<div class="small">Nessuna foto</div>';
+    arr.forEach(p => {
+      const div = document.createElement('div');
+      div.className = 'card';
+      div.style.display = 'inline-block';
+      div.style.textAlign = 'center';
+      div.style.padding = '8px';
+      div.innerHTML = `<img src="${p.url}" class="thumb"><div class="small">${new Date((p.uploadedAt?.seconds||Date.now())*1000).toLocaleDateString()}</div>`;
+      div.onclick = ()=> showModalPhoto(p.url);
+      photosGrid.appendChild(div);
     });
+  }
 
-    // save weight
-    saveWeightBtn.onclick = async ()=> {
-      const v = Number(weightInput.value);
-      if(!v){ saveMsg.textContent = "Inserisci un valore valido"; return; }
-      await S.saveWeightForUser(S.auth.currentUser.uid, v);
-      saveMsg.textContent = "Salvato";
-      weightInput.value = "";
-      const weights = await S.getUserWeights(S.auth.currentUser.uid);
-      renderChart(weights);
-    };
+  uploadBtn.addEventListener('click', async ()=>{
+    if(!photoFile.files.length) return alert('Seleziona file');
+    const file = photoFile.files[0];
+    uploadBtn.disabled = true; uploadBtn.textContent = 'Uploading...';
+    try{
+      const idToken = await currentUser.getIdToken();
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('uid', currentUser.uid);
+      const res = await fetch(`${WORKER_URL}/upload`, { method:'POST', headers:{ Authorization: 'Bearer '+idToken }, body: fd });
+      const j = await res.json();
+      if(!j.key && !j.url) throw new Error('upload failed');
+      const url = j.url || `${WORKER_URL}/file/${encodeURIComponent(j.key)}`;
+      // save metadata in firestore
+      await addDoc(collection(db, 'users', currentUser.uid, 'photos'), { url, key: j.key, filename: file.name, uploadedAt: serverTimestamp() });
+      alert(T[localStorage.getItem('cp_lang')||'it'].uploadSuccess);
+      await loadPhotos();
+    }catch(e){
+      console.error(e);
+      alert(T[localStorage.getItem('cp_lang')||'it'].uploadFail + ': ' + (e.message||e));
+    } finally { uploadBtn.disabled=false; uploadBtn.textContent='Carica'; photoFile.value=''; }
+  });
 
-    // upload photo
-    uploadPhotoBtn.onclick = async ()=>{
-      const f = photoFile.files[0]; if(!f) return alert("Seleziona un file");
-      try{
-        uploadPhotoBtn.disabled=true; uploadPhotoBtn.textContent="Uploading...";
-        const out = await S.uploadPhotoToWorker(f);
-        await S.savePhotoMetaForUser(S.auth.currentUser.uid, { url: out.url, key: out.key, filename: f.name, uploadedAt: serverTimestamp() });
-        photosCache = await S.getUserPhotos(S.auth.currentUser.uid);
-        alert("Foto caricata");
-      }catch(e){ alert("Upload failed: " + e.message); } finally { uploadPhotoBtn.disabled=false; uploadPhotoBtn.textContent="Carica foto"; }
-    };
+  // ---------------- ADVICES / RECIPES ----------------
+  async function loadAdvices(){
+    advicesList.innerHTML = 'Loading...';
+    if(!currentUser) return;
+    const q = query(collection(db,'advices'), where('approved','==',true), orderBy('createdAt','desc'));
+    const snap = await getDocs(q);
+    if(snap.empty){ advicesList.innerHTML = '<div class="small">Nessun consiglio</div>'; return; }
+    advicesList.innerHTML = snap.docs.map(d=>{
+      const data = d.data();
+      // show only assignedTo == all or to current uid
+      const assigned = data.assignedTo || 'all';
+      if(assigned !== 'all' && assigned !== currentUser.uid) return '';
+      return `<div class="card" style="margin-bottom:8px"><strong>${data.title||'Consiglio'}</strong><div class="small">${(data.text||'').slice(0,220)}</div><div class="small" style="margin-top:8px">Autore: ${data.author||'coach'}</div></div>`;
+    }).join('');
+  }
 
+  async function loadRecipes(){
+    recipesList.innerHTML = 'Loading...';
+    if(!currentUser) return;
+    const q = query(collection(db,'recipes'), where('approved','==',true), orderBy('createdAt','desc'));
+    const snap = await getDocs(q);
+    if(snap.empty){ recipesList.innerHTML = '<div class="small">Nessuna ricetta</div>'; return; }
+    recipesList.innerHTML = snap.docs.map(d=>{
+      const data = d.data();
+      const assigned = data.assignedTo || 'all';
+      if(assigned !== 'all' && assigned !== currentUser.uid) return '';
+      return `<div class="card" style="margin-bottom:8px"><strong>${data.title||data.food||'Ricetta'}</strong><div class="small">${(data.generatedText||data.text||'').slice(0,240)}</div></div>`;
+    }).join('');
+  }
+
+  // ---------------- AI Assistant (via Worker) ----------------
+  aiAsk.addEventListener('click', async ()=>{
+    const q = aiQ.value.trim();
+    if(!q) return;
+    aiOut.textContent = '...';
+    try {
+      const res = await fetch(`${WORKER_URL}/api/chat`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ messages:[{ role:'user', content:q }] }) });
+      const j = await res.json();
+      const text = j.choices?.[0]?.message?.content || j.choices?.[0]?.text || JSON.stringify(j);
+      aiOut.textContent = text;
+    } catch(e){
+      aiOut.textContent = 'AI error: ' + (e.message||e);
+    }
+  });
+  // ---------------- MODALS ----------------
+  function showModalPhoto(url){
+    modalRoot.innerHTML = `<div class="modal-backdrop" id="modalBack"><div class="modal"><img src="${url}" style="width:100%;border-radius:8px"><div style="margin-top:8px;display:flex;justify-content:flex-end"><button id="closeModal" class="btn-ghost">Chiudi</button></div></div></div>`;
+    modalRoot.style.display='block';
+    document.getElementById('closeModal').onclick = ()=> { modalRoot.style.display='none'; modalRoot.innerHTML=''; };
+  }
+
+  function showModalChart(){
+    // open a larger modal with full chart and photos overlay
+    modalRoot.innerHTML = `<div class="modal-backdrop" id="modalBack"><div class="modal"><h3>Andamento Peso — dettaglio</h3><canvas id="bigChart" height="260"></canvas><div style="margin-top:12px;display:flex;justify-content:flex-end"><button id="closeModal" class="btn-ghost">Chiudi</button></div></div></div>`;
+    modalRoot.style.display='block';
+    document.getElementById('closeModal').onclick = ()=> { modalRoot.style.display='none'; modalRoot.innerHTML=''; };
+    // render large chart using same data
+    (async()=>{
+      const q = query(collection(db, 'users', currentUser.uid, 'weights'), orderBy('ts','asc'));
+      const snap = await getDocs(q);
+      const labs = [], data=[];
+      snap.forEach(d=>{
+        const v = d.data();
+        labs.push(v.ts ? new Date(v.ts.seconds*1000).toLocaleDateString() : '');
+        data.push(v.value);
+      });
+      const ctx = document.getElementById('bigChart').getContext('2d');
+      new Chart(ctx, { type:'line', data:{ labels: labs, datasets:[{ label:'Peso', data, tension:0.2, borderColor: getComputedStyle(document.documentElement).getPropertyValue('--accent')}]}, options:{responsive:true} });
+    })();
+  }
+
+  // ---------------- UTIL ----------------
+  // simple helper to show notifications (tiny)
+  function notify(msg, time=2500){ const n = document.createElement('div'); n.style.position='fixed'; n.style.right='18px'; n.style.bottom='18px'; n.style.padding='10px 12px'; n.style.background='var(--card)'; n.style.borderRadius='8px'; n.style.boxShadow='var(--card-shadow)'; n.textContent=msg; document.body.appendChild(n); setTimeout(()=>n.remove(),time); }
+
+  // ---------------- END ----------------
   </script>
 </body>
 </html>

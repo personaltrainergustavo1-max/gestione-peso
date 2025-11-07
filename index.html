@@ -5,51 +5,47 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard Cliente</title>
 <link rel="stylesheet" href="styles.css">
-<script type="module" src="api.js"></script>
-<script type="module" src="main.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body class="theme-light">
-
+<body>
 <header>
-  <h1 data-i18n="dashboard_title">La Mia Dashboard</h1>
-  <div class="controls">
-    <button id="toggle-theme" data-i18n="toggle_theme">Tema</button>
-    <select id="lang-select">
-      <option value="it">IT</option>
-      <option value="en">EN</option>
-    </select>
+  <h1 data-i18n="dashboard">Dashboard</h1>
+  <div class="toggles">
+    <button id="themeToggle" data-i18n="theme">Tema</button>
+    <button id="langToggle">EN/IT</button>
   </div>
 </header>
 
 <main class="dashboard">
-  <div class="card" id="card-weight">
-    <h2 data-i18n="weight_progress">Andamento Peso</h2>
-    <canvas id="weight-chart"></canvas>
+  <div class="card" data-type="weight">
+    <h3 data-i18n="weight-trend">Andamento Peso</h3>
+    <canvas id="weightChart"></canvas>
   </div>
 
-  <div class="card" id="card-photos">
-    <h2 data-i18n="progress_photos">Foto Progressi</h2>
-    <div id="photos-container"></div>
+  <div class="card" data-type="photos">
+    <h3 data-i18n="progress-photos">Progressi Foto</h3>
+    <div class="photo-gallery"></div>
   </div>
 
-  <div class="card" id="card-advices">
-    <h2 data-i18n="advices">Consigli Alimentari</h2>
-    <ul id="advices-list"></ul>
+  <div class="card" data-type="advices">
+    <h3 data-i18n="advices">Consigli Alimentari</h3>
+    <div class="advices-list"></div>
   </div>
 
-  <div class="card" id="card-recipes">
-    <h2 data-i18n="recipes">Ricette</h2>
-    <ul id="recipes-list"></ul>
+  <div class="card" data-type="recipes">
+    <h3 data-i18n="recipes">Ricette</h3>
+    <div class="recipes-list"></div>
   </div>
 </main>
 
-<!-- Modal grafico/foto -->
-<div id="modal" class="modal">
-  <div class="modal-content">
-    <span class="close">&times;</span>
-    <div id="modal-body"></div>
-  </div>
+<!-- Modal foto -->
+<div id="photoModal" class="modal">
+  <span class="close">&times;</span>
+  <img class="modal-content" id="modalImg">
+  <div id="caption"></div>
 </div>
 
+<script type="module" src="api.js"></script>
+<script type="module" src="main.js"></script>
 </body>
 </html>

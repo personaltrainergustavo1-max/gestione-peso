@@ -1,48 +1,48 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Dashboard Cliente</title>
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
+<body class="light">
 <header>
   <h1 data-i18n="dashboard">Dashboard Cliente</h1>
   <div class="toggles">
     <button id="themeToggle" data-i18n="theme">Tema</button>
     <button id="langToggle">EN/IT</button>
-    <button id="logoutBtn" data-i18n="logout">Logout</button>
+    <button id="loginBtn" class="primary">Accedi con Google</button>
+    <button id="logoutBtn" style="display:none;">Logout</button>
   </div>
 </header>
 
-<main class="dashboard">
-  <div class="card" data-type="weight">
+<main class="dashboard hidden">
+  <div class="card">
     <h3 data-i18n="weight-progress">Andamento Peso</h3>
-    <canvas id="weightChart"></canvas>
+    <canvas id="weightChart" style="height:260px"></canvas>
   </div>
 
-  <div class="card" data-type="advices">
+  <div class="card">
     <h3 data-i18n="advices">Consigli Alimentari</h3>
     <div id="advicesList"></div>
   </div>
 
-  <div class="card" data-type="recipes">
+  <div class="card">
     <h3 data-i18n="recipes">Ricette</h3>
     <div id="recipesList"></div>
   </div>
 
-  <div class="card" data-type="photos">
+  <div class="card">
     <h3 data-i18n="progress-photos">Foto Progressi</h3>
-    <div id="photosList"></div>
+    <div id="photosList" style="display:flex;flex-wrap:wrap;gap:6px"></div>
   </div>
 </main>
 
-<!-- Modal per foto -->
-<div id="photoModal" class="modal hidden">
+<div id="photoModal" class="modal">
   <span class="close">&times;</span>
-  <img class="modal-content" id="modalImage">
+  <img id="modalImage" src="" alt="photo" />
 </div>
 
 <script type="module" src="api.js"></script>

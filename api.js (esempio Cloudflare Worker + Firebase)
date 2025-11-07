@@ -1,20 +1,36 @@
-const workerUrl = 'https://gino.personaltrainergustavo1.workers.dev';
+// Esempio semplificato
+export async function fetchAdvices() {
+  const res = await fetch('/api/advices');
+  return await res.json();
+}
 
-// Client fetch
-export async function fetchWeights(){ const res=await fetch(`${workerUrl}/users/weights`); return res.ok?await res.json():[]; }
-export async function fetchPhotos(){ const res=await fetch(`${workerUrl}/users/photos`); return res.ok?await res.json():[]; }
-export async function fetchAdvices(){ const res=await fetch(`${workerUrl}/advices`); return res.ok?await res.json():[]; }
-export async function fetchRecipes(){ const res=await fetch(`${workerUrl}/recipes`); return res.ok?await res.json():[]; }
+export async function fetchRecipes() {
+  const res = await fetch('/api/recipes');
+  return await res.json();
+}
 
-// Admin fetch
-export async function fetchClients(){ const res=await fetch(`${workerUrl}/users`); return res.ok?await res.json():[]; }
+export async function fetchWeights() {
+  const res = await fetch('/api/weights');
+  return await res.json();
+}
 
-// Admin actions
-export async function addAdvice(clientId, text){ const res=await fetch(`${workerUrl}/advices`,{method:'POST',body:JSON.stringify({clientId,text})}); return res.ok?await res.json():null; }
-export async function addRecipe(clientId, text){ const res=await fetch(`${workerUrl}/recipes`,{method:'POST',body:JSON.stringify({clientId,text})}); return res.ok?await res.json():null; }
-export async function uploadPhoto(clientId, file){
-  const formData = new FormData();
-  formData.append('file', file);
-  const res=await fetch(`${workerUrl}/upload?clientId=${clientId}`,{method:'PUT',body:file});
-  return res.ok?await res.json():{success:false};
+export async function fetchPhotos() {
+  const res = await fetch('/api/photos');
+  return await res.json();
+}
+
+export async function fetchClients() {
+  const res = await fetch('/api/clients');
+  return await res.json();
+}
+
+export async function uploadPhoto(uid, file) {
+  const form = new FormData();
+  form.append('file', file);
+  await fetch(`/api/upload?uid=${uid}`, { method:'POST', body:form });
+}
+
+export async function logoutUser() {
+  // Firebase logout
+  alert('Logout effettuato');
 }
